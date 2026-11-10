@@ -1,0 +1,668 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with role management",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { 
+          "type": "string", 
+          "enum": [
+            "super_admin", 
+            "admin", 
+            "chief_editor", 
+            "editor", 
+            "journalist", 
+            "moderator", 
+            "fact_checker", 
+            "photographer", 
+            "video_editor", 
+            "advertiser", 
+            "subscriber", 
+            "guest",
+            "user"
+          ] 
+        },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Article": {
+      "title": "News Article",
+      "description": "Standard news post supporting editorial workflow and scheduling",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": [
+            "draft", 
+            "assigned", 
+            "under_review", 
+            "fact_check", 
+            "approved", 
+            "scheduled", 
+            "published", 
+            "archived"
+          ] 
+        },
+        "featuredImage": { "type": "string" },
+        "views": { "type": "integer" },
+        "isBreaking": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "publishAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "categoryId", "authorId", "status", "createdAt"]
+    },
+    "Category": {
+      "title": "News Category",
+      "type": "object",
+      "properties": {
+        "nameNepali": { "type": "string" },
+        "nameEnglish": { "type": "string" },
+        "slug": { "type": "string" },
+        "order": { "type": "integer" },
+        "homepageStyle": { "type": "string" }
+      },
+      "required": ["nameNepali", "slug"]
+    },
+    "Event": {
+      "title": "Event",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "tagline": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "featuredImage": { "type": "string" },
+        "status": { "type": "string" },
+        "timeline": { "type": "array" }
+      },
+      "required": ["title", "status"]
+    },
+    "Model": {
+      "title": "Model/Photographer Profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "profileImage": { "type": "string" },
+        "category": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "createdAt"]
+    },
+    "CommunityPost": {
+      "title": "Community Post",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "upvotes": { "type": "integer" },
+        "downvotes": { "type": "integer" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "authorId", "createdAt"]
+    },
+    "Ad": {
+      "title": "Advertisement Campaign",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "advertiserId": { "type": "string" },
+        "advertiserName": { "type": "string" },
+        "advertiserContact": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "linkUrl": { "type": "string" },
+        "position": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "priority": { "type": "integer" },
+        "weight": { "type": "number" },
+        "impressions": { "type": "integer" },
+        "clicks": { "type": "integer" },
+        "ctr": { "type": "number" },
+        "targetDistricts": { "type": "array", "items": { "type": "string" } },
+        "targetCategories": { "type": "array", "items": { "type": "string" } },
+        "targetCountries": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["draft", "scheduled", "active", "paused", "expired"] },
+        "isActive": { "type": "boolean" },
+        "isSponsored": { "type": "boolean" },
+        "budget": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "imageUrl", "linkUrl", "position", "isActive"]
+    },
+    "Agent": {
+      "title": "Booking Agent",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "phone", "isActive", "createdAt"]
+    },
+    "Bookmark": {
+      "title": "User Bookmark",
+      "description": "Article saved by a user",
+      "type": "object",
+      "properties": {
+        "articleId": { "type": "string" },
+        "title": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["articleId", "title", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "System Audit Log",
+      "description": "Immutable security log of admin and staff actions",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "articleId": { "type": "string" },
+        "metadata": { "type": "object" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "userId", "timestamp"]
+    },
+    "ApprovalRequest": {
+      "title": "Dual-Key Approval Request",
+      "description": "A pending request for extremely sensitive actions requiring dual-key admin sign-offs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "actionType": { "type": "string", "enum": ["delete_user", "delete_audit_log", "change_super_admin_role", "change_billing_settings"] },
+        "requesterId": { "type": "string" },
+        "requesterEmail": { "type": "string" },
+        "targetId": { "type": "string" },
+        "payload": { "type": "object" },
+        "status": { "type": "string", "enum": ["pending_approval", "approved", "rejected"] },
+        "approverId": { "type": "string" },
+        "approverEmail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "resolvedAt": { "type": "string", "format": "date-time" },
+        "rejectionReason": { "type": "string" }
+      },
+      "required": ["id", "actionType", "requesterId", "status", "createdAt"]
+    },
+    "StoryAssignment": {
+      "title": "Story Assignment",
+      "description": "Editorial task assigned to a journalist or photographer",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "assignedTo": { "type": "string" },
+        "assignedToName": { "type": "string" },
+        "assignedBy": { "type": "string" },
+        "assignedByName": { "type": "string" },
+        "deadline": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["assigned", "in_progress", "submitted", "completed"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "assignedTo", "assignedBy", "deadline", "status"]
+    },
+    "CoverageCalendarEvent": {
+      "title": "Coverage Calendar Event",
+      "description": "An upcoming news event planned for coverage",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "eventDate": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "assignedTo": { "type": "array" },
+        "status": { "type": "string", "enum": ["planned", "active", "completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "eventDate", "status"]
+    },
+    "ArticleVersion": {
+      "title": "Article Version History",
+      "description": "Historic revision record of an article for draft restoration",
+      "type": "object",
+      "properties": {
+        "articleId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "versionNumber": { "type": "integer" },
+        "updatedBy": { "type": "string" },
+        "updatedByName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["articleId", "title", "content", "versionNumber", "updatedBy", "timestamp"]
+    },
+    "BreakingNewsConfig": {
+      "title": "Breaking News Command Center Config",
+      "description": "Emergency alerts and homepage takeover directives",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "articleId": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "homepageTakeover": { "type": "boolean" },
+        "stickyBanner": { "type": "boolean" },
+        "pushNotification": { "type": "boolean" },
+        "emergencyAlert": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "isActive"]
+    },
+    "AdCampaign": {
+      "title": "Advertising Campaign",
+      "description": "Corporate client sponsorship campaign",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "advertiserName": { "type": "string" },
+        "creativeUrl": { "type": "string" },
+        "placement": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "budget": { "type": "number" },
+        "spent": { "type": "number" },
+        "impressions": { "type": "integer" },
+        "clicks": { "type": "integer" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "advertiserName", "creativeUrl", "placement", "startDate", "endDate", "isActive"]
+    },
+    "MediaAnalytics": {
+      "title": "Media Engagement Metrics",
+      "description": "Aggregation of article, category, or journalist page engagement metrics",
+      "type": "object",
+      "properties": {
+        "articleId": { "type": "string" },
+        "category": { "type": "string" },
+        "journalistId": { "type": "string" },
+        "pageViews": { "type": "integer" },
+        "uniqueReaders": { "type": "integer" },
+        "avgReadingTime": { "type": "integer" },
+        "scrollDepth": { "type": "integer" },
+        "bounceRate": { "type": "integer" },
+        "timestamp": { "type": "string", "format": "date" }
+      },
+      "required": ["pageViews", "uniqueReaders", "timestamp"]
+    },
+    "MediaAsset": {
+      "title": "Media Asset File",
+      "description": "Durable metadata, license details, and association reference logs for high-quality news assets",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "caption": { "type": "string" },
+        "altText": { "type": "string" },
+        "tags": { "type": "array" },
+        "photographer": { "type": "string" },
+        "copyrightOwner": { "type": "string" },
+        "licenseType": { "type": "string", "enum": ["internal", "owned", "creative_commons", "partner", "sponsored", "restricted"] },
+        "storagePath": { "type": "string" },
+        "mimeType": { "type": "string", "enum": ["image", "video", "audio", "document"] },
+        "uploadedBy": { "type": "string" },
+        "uploadedByName": { "type": "string" },
+        "usageRights": { "type": "string" },
+        "expirationDate": { "type": "string", "format": "date" },
+        "linkedArticlesCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "licenseType", "storagePath", "mimeType", "uploadedBy", "createdAt"]
+    },
+    "Report": {
+      "title": "Community Report",
+      "description": "User flags or reports regarding abusive community posts",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["post", "comment"] },
+        "targetId": { "type": "string" },
+        "targetTitle": { "type": "string" },
+        "targetContent": { "type": "string" },
+        "reason": { "type": "string", "enum": ["spam", "harassment", "hate_speech", "violence", "misinformation", "other"] },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "resolved", "dismissed"] },
+        "moderatedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reporterId", "targetType", "targetId", "reason", "status", "createdAt"]
+    },
+    "ModerationAction": {
+      "title": "Moderation Action Record",
+      "description": "Immutable history of actions taken by moderators on users",
+      "type": "object",
+      "properties": {
+        "moderatorId": { "type": "string" },
+        "moderatorName": { "type": "string" },
+        "targetUserId": { "type": "string" },
+        "targetUserName": { "type": "string" },
+        "action": { "type": "string", "enum": ["warning", "mute", "temp_ban", "perm_ban", "shadow_ban"] },
+        "reason": { "type": "string" },
+        "durationDays": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["moderatorId", "targetUserId", "action", "reason", "createdAt"]
+    },
+    "Appeal": {
+      "title": "Moderation Appeal",
+      "description": "User requests for review on a moderation action",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "actionId": { "type": "string" },
+        "appealText": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "moderatorNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "actionId", "appealText", "status", "createdAt"]
+    },
+    "BannedUser": {
+      "title": "Banned User Registry",
+      "description": "Log of users currently restricted from participating",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "bannedBy": { "type": "string" },
+        "banType": { "type": "string", "enum": ["mute", "temp_ban", "perm_ban", "shadow_ban"] },
+        "reason": { "type": "string" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "banType", "reason", "createdAt"]
+    },
+    "NepalHubLiveUpdate": {
+      "title": "Nepal Hub Live Event Update",
+      "description": "Real-time dispatch updates for national events, festivals, disasters, and elections",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string", "enum": ["festivals", "disaster", "elections", "national"] },
+        "badge": { "type": "string" },
+        "urgency": { "type": "string", "enum": ["normal", "high", "urgent"] },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorRole": { "type": "string" },
+        "time": { "type": "string" },
+        "viewsCount": { "type": "integer" },
+        "sharesCount": { "type": "integer" },
+        "likesCount": { "type": "integer" },
+        "pinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "category", "urgency", "createdAt"]
+    },
+    "SocialAccount": {
+      "title": "Sanatan Marga Social Media Account",
+      "description": "Official social media channels and pages of Sanatan Marga and Sanatan Media",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "platform": { "type": "string", "enum": ["youtube", "facebook", "twitter", "instagram", "tiktok", "telegram", "whatsapp", "spotify", "threads", "linkedin"] },
+        "handle": { "type": "string" },
+        "url": { "type": "string" },
+        "followerCount": { "type": "string" },
+        "description": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "isActive": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "category": { "type": "string" },
+        "order": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "platform", "handle", "url", "isActive", "createdAt"]
+    },
+    "SocialPost": {
+      "title": "Sanatan Marga Social Post / Feed Item",
+      "description": "Social media posts, videos, reels, and podcasts published by Sanatan Media",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "platform": { "type": "string", "enum": ["youtube", "facebook", "twitter", "instagram", "tiktok", "telegram", "whatsapp", "spotify", "threads", "linkedin"] },
+        "contentType": { "type": "string", "enum": ["video", "reel", "post", "live", "podcast", "channel"] },
+        "url": { "type": "string" },
+        "embedId": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorHandle": { "type": "string" },
+        "likesCount": { "type": "integer" },
+        "viewsCount": { "type": "integer" },
+        "sharesCount": { "type": "integer" },
+        "isFeatured": { "type": "boolean" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "platform", "contentType", "url", "createdAt"]
+    },
+    "DiscoveryStory": {
+      "title": "Discovered Story",
+      "description": "Real-time AI discovered breaking news, government notices, and disaster alerts",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "titleNe": { "type": "string" },
+        "summary": { "type": "string" },
+        "summaryNe": { "type": "string" },
+        "category": { "type": "string" },
+        "source": { "type": "string" },
+        "sourceUrl": { "type": "string" },
+        "freshnessMins": { "type": "integer" },
+        "district": { "type": "string" },
+        "isGovNotice": { "type": "boolean" },
+        "governmentDept": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "drafted", "ignored", "published"] },
+        "scores": {
+          "type": "object",
+          "properties": {
+            "freshness": { "type": "integer" },
+            "authority": { "type": "integer" },
+            "relevance": { "type": "integer" },
+            "civilizational": { "type": "integer" },
+            "communityInterest": { "type": "integer" },
+            "duplicateRisk": { "type": "integer" }
+          }
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "source", "status", "createdAt"]
+    },
+    "HotTopic": {
+      "title": "Hot Topic",
+      "description": "Trending topics and hashtags across Nepal news and culture",
+      "type": "object",
+      "properties": {
+        "tag": { "type": "string" },
+        "description": { "type": "string" },
+        "descriptionNe": { "type": "string" },
+        "category": { "type": "string" },
+        "volume": { "type": "string" }
+      },
+      "required": ["tag", "description", "category"]
+    },
+    "CommerceProduct": {
+      "title": "Sanatan Store Product",
+      "description": "Books, merchandise, artwork, and digital products",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "nameNepali": { "type": "string" },
+        "slug": { "type": "string" },
+        "description": { "type": "string" },
+        "descriptionNepali": { "type": "string" },
+        "price": { "type": "number" },
+        "salePrice": { "type": "number" },
+        "category": { "type": "string", "enum": ["books", "merchandise", "digital", "artwork", "puja"] },
+        "images": { "type": "array" },
+        "stock": { "type": "integer" },
+        "whatsappNumber": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "out_of_stock", "draft"] },
+        "isFeatured": { "type": "boolean" },
+        "authorOrMaker": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nameNepali", "price", "category", "stock", "status"]
+    },
+    "CommerceOrder": {
+      "title": "Store Commerce Order",
+      "description": "Orders created before or after WhatsApp/gateway redirection",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "district": { "type": "string" },
+        "address": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "totalPrice": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["whatsapp_cod", "esewa", "khalti", "fonepay", "bank_transfer"] },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "shipped", "delivered", "cancelled"] },
+        "whatsappSent": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "phone", "district", "productId", "quantity", "totalPrice", "status", "createdAt"]
+    },
+    "CommerceCustomer": {
+      "title": "Commerce Customer Profile",
+      "description": "Aggregated stats for store customers",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "district": { "type": "string" },
+        "totalOrders": { "type": "integer" },
+        "totalSpent": { "type": "number" },
+        "lastOrderAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "phone", "district", "totalOrders", "totalSpent", "createdAt"]
+    },
+    "EditorialCandidate": {
+      "title": "Editorial News Candidate",
+      "description": "Server-authoritative news candidate moving from source discovery to editorial review and canonical publication",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["discovered", "source_verified", "pending_review", "in_review", "changes_requested", "approved", "published", "rejected", "expired"]
+        },
+        "version": { "type": "integer" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "district": { "type": "string" },
+        "contentFingerprint": { "type": "string" },
+        "freshnessScore": { "type": "number" },
+        "discoveredAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "publishedArticleId": { "type": "string" }
+      },
+      "required": ["id", "status", "version", "title", "category", "contentFingerprint", "discoveredAt", "updatedAt"]
+    },
+    "SnapshotInvalidationOutboxJob": {
+      "title": "Snapshot Invalidation Outbox Job",
+      "description": "Server-authoritative durable outbox for snapshot invalidation jobs following canonical publication",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "articleId": { "type": "string" },
+        "eventType": { "type": "string", "enum": ["article_publish", "article_update", "article_retract"] },
+        "status": { "type": "string", "enum": ["pending", "processing", "completed", "failed"] },
+        "attempts": { "type": "integer" },
+        "maxAttempts": { "type": "integer" },
+        "nextRetryAt": { "type": "string", "format": "date-time" },
+        "lockedUntil": { "type": "string" },
+        "lockedBy": { "type": "string" },
+        "lastError": { "type": "string" },
+        "lastErrorCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string" }
+      },
+      "required": ["id", "candidateId", "articleId", "eventType", "status", "attempts", "maxAttempts", "nextRetryAt", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/snapshot_invalidation_outbox/{jobId}": { "schema": "SnapshotInvalidationOutboxJob", "description": "Durable outbox jobs for snapshot invalidation" },
+    "/editorial_candidates/{candidateId}": { "schema": "EditorialCandidate", "description": "Editorial candidates in discovery, review, and verification pipeline" },
+    "/commerce_products/{productId}": { "schema": "CommerceProduct", "description": "Store items and inventory" },
+    "/commerce_orders/{orderId}": { "schema": "CommerceOrder", "description": "Persistent commerce orders" },
+    "/commerce_customers/{customerId}": { "schema": "CommerceCustomer", "description": "Customer profiles and lifetime stats" },
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/users/{uid}/bookmarks/{articleId}": { "schema": "Bookmark", "description": "Articles saved by the user" },
+    "/articles/{articleId}": { "schema": "Article", "description": "News articles" },
+    "/categories/{categoryId}": { "schema": "Category", "description": "Article categories" },
+    "/events/{eventId}": { "schema": "Event", "description": "Special events and coverages" },
+    "/models/{modelId}": { "schema": "Model", "description": "Model and photographer profiles" },
+    "/communityPosts/{postId}": { "schema": "CommunityPost", "description": "User community discussions" },
+    "/ads/{adId}": { "schema": "Ad", "description": "Advertisement banners and sliders" },
+    "/agents/{agentId}": { "schema": "Agent", "description": "Talent management agents" },
+    "/contactMessages/{messageId}": { "schema": "object", "description": "Contact form submissions" },
+    "/modelInquiries/{inquiryId}": { "schema": "object", "description": "Inquiries for models" },
+    "/agentInquiries/{inquiryId}": { "schema": "object", "description": "Inquiries for agents" },
+    "/auditLogs/{logId}": { "schema": "AuditLog", "description": "Immutable security logs of admin and staff events" },
+    "/dualKeyApprovals/{approvalId}": { "schema": "ApprovalRequest", "description": "Pending and resolved dual-key administrator approval requests" },
+    "/storyAssignments/{assignmentId}": { "schema": "StoryAssignment", "description": "Assigned reporter writing tasks" },
+    "/coverageCalendar/{eventId}": { "schema": "CoverageCalendarEvent", "description": "Coverage tracking calendar events" },
+    "/articleVersions/{versionId}": { "schema": "ArticleVersion", "description": "Historic content edits for draft restoration" },
+    "/breakingNews/{configId}": { "schema": "BreakingNewsConfig", "description": "Alert flags for emergency home coverage takeover" },
+    "/campaigns/{campaignId}": { "schema": "AdCampaign", "description": "Sponsorship banners and client ad campaigns" },
+    "/analytics/{metricId}": { "schema": "MediaAnalytics", "description": "Reader traffic and journalist leaderboard indexes" },
+    "/mediaAssets/{assetId}": { "schema": "MediaAsset", "description": "Durable central repository of photo, video, audio, and document assets" },
+    "/reports/{reportId}": { "schema": "Report", "description": "Reader-flagged abusive contents queue" },
+    "/moderationActions/{actionId}": { "schema": "ModerationAction", "description": "Immutable historical log of community moderator enforcement actions" },
+    "/appeals/{appealId}": { "schema": "Appeal", "description": "User appeals for warning and ban relief" },
+    "/bannedUsers/{banId}": { "schema": "BannedUser", "description": "Active community restriction registry" },
+    "/nepal_hub_live_updates/{updateId}": { "schema": "NepalHubLiveUpdate", "description": "Real-time dispatches for live coverage" },
+    "/socialAccounts/{accountId}": { "schema": "SocialAccount", "description": "Official Sanatan Marga and Sanatan Media social media accounts" },
+    "/socialPosts/{postId}": { "schema": "SocialPost", "description": "Social media posts, videos, reels, and podcast feeds from Sanatan Media" },
+    "/discoveryQueue/{storyId}": { "schema": "DiscoveryStory", "description": "Discovered breaking news and government notice feeds" },
+    "/hotTopics/{topicId}": { "schema": "HotTopic", "description": "Trending news and cultural hashtags" },
+    "/liveVideos/{videoId}": { "schema": "LiveVideo", "description": "Live media hub video streams" },
+    "/adAnalytics/{logId}": { "schema": "object", "description": "Ad impression and click telemetry events" },
+    "/archives/{archiveId}": { "schema": "object", "description": "Archives OS authoritative historical documents and manuscripts" },
+    "/archive_audit_logs/{logId}": { "schema": "object", "description": "Immutable audit trail for Archives OS governance" },
+    "/training_progress/{userId}": { "schema": "object", "description": "User completed lessons, competency level, training hours, and active simulator state" },
+    "/training_certifications/{certId}": { "schema": "object", "description": "Cryptographically verifiable credentials, issue and renewal expiry dates" },
+    "/training_attempts/{attemptId}": { "schema": "object", "description": "Individual exam and assessment attempts with telemetry" },
+    "/training_badges/{badgeId}": { "schema": "object", "description": "Earned training achievement badges and specialized competencies" }
+  }
+}

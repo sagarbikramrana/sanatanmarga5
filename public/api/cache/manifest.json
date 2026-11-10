@@ -1,0 +1,12 @@
+{
+  "snapshotVersion": "v5.1.0-svrp",
+  "generatedAt": "2026-08-09T05:40:59.000Z",
+  "manifestVersion": 5,
+  "previousVersionHash": null,
+  "manifestHash": "initial_hash_v5.1",
+  "continuityScore": 99.9,
+  "totalSizeBytes": 0,
+  "totalModules": 0,
+  "modules": {},
+  "historyChain": []
+}

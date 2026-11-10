@@ -1,0 +1,596 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sanatan Marga - Complete Firebase Blueprint Spec",
+  "description": "Production database schema definitions, composite indexes, role permission metrics, and data integrity constraints.",
+  "metadata": {
+    "version": "2.0.0",
+    "updatedAt": "2026-07-18T01:45:16-07:00",
+    "maturityScore": "9.5/10",
+    "databaseId": "ai-studio-sanatanmediav10-4c8b12e0-2b9f-4fbc-ac12-3b068b3a81b7"
+  },
+  "permissionMatrix": {
+    "roles": [
+      "super_admin",
+      "admin",
+      "chief_editor",
+      "editor",
+      "journalist",
+      "moderator",
+      "fact_checker",
+      "photographer",
+      "video_editor",
+      "advertiser",
+      "subscriber",
+      "guest",
+      "user"
+    ],
+    "matrix": {
+      "articles": {
+        "create": ["super_admin", "admin", "chief_editor", "editor", "journalist"],
+        "read": ["any"],
+        "update_draft": ["super_admin", "admin", "chief_editor", "editor", "journalist"],
+        "transition_status": ["super_admin", "admin", "chief_editor", "editor"],
+        "delete": ["super_admin", "admin"]
+      },
+      "storyAssignments": {
+        "create": ["super_admin", "admin", "chief_editor", "editor"],
+        "read": ["super_admin", "admin", "chief_editor", "editor", "journalist"],
+        "update_all": ["super_admin", "admin", "chief_editor", "editor"],
+        "update_status": ["journalist"],
+        "delete": ["super_admin", "admin"]
+      },
+      "auditLogs": {
+        "create": ["super_admin", "admin", "chief_editor", "editor", "journalist", "moderator", "fact_checker", "photographer", "video_editor", "advertiser"],
+        "read": ["super_admin", "admin"],
+        "update": [],
+        "delete": []
+      },
+      "campaigns": {
+        "create": ["super_admin", "admin", "advertiser"],
+        "read": ["any"],
+        "update": ["super_admin", "admin", "advertiser"],
+        "delete": ["super_admin", "admin"]
+      }
+    }
+  },
+  "collections": {
+    "users": {
+      "path": "/users/{uid}",
+      "description": "Stores core profile documents and RBAC metadata mapping.",
+      "securityConstraints": {
+        "read": "request.auth != null && (request.auth.uid == uid || request.auth.token.role in ['super_admin', 'admin', 'chief_editor', 'editor'])",
+        "create": "request.auth != null && request.auth.uid == uid && incoming().role in ['user', 'subscriber', 'guest']",
+        "update": "request.auth != null && (incoming().role == existing().role || request.auth.token.role in ['super_admin', 'admin'])",
+        "delete": "request.auth.token.role in ['super_admin', 'admin']"
+      },
+      "fields": {
+        "uid": {
+          "type": "string",
+          "description": "Unique user identifier from Firebase Authentication."
+        },
+        "email": {
+          "type": "string",
+          "description": "Primary email address of the registered profile."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full name or alias displayed publicly on the platform."
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "super_admin",
+            "admin",
+            "chief_editor",
+            "editor",
+            "journalist",
+            "moderator",
+            "fact_checker",
+            "photographer",
+            "video_editor",
+            "advertiser",
+            "subscriber",
+            "guest",
+            "user"
+          ],
+          "description": "Platform privilege tier controlling dashboard navigation and Firestore rule gates."
+        },
+        "photoURL": {
+          "type": "string",
+          "nullable": true,
+          "description": "Secure HTTPS link to profile portrait image."
+        },
+        "bio": {
+          "type": "string",
+          "nullable": true,
+          "description": "Short public biography of the reporter or community member."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp."
+        }
+      }
+    },
+    "bookmarks": {
+      "path": "/users/{uid}/bookmarks/{articleId}",
+      "description": "Nested subcollection tracking saved news elements for offline bookmarks.",
+      "securityConstraints": {
+        "read": "request.auth != null && request.auth.uid == uid",
+        "write": "request.auth != null && request.auth.uid == uid"
+      },
+      "fields": {
+        "articleId": {
+          "type": "string",
+          "description": "Target ID reference pointing directly to the /articles collection."
+        },
+        "title": {
+          "type": "string",
+          "description": "Cached headline of the bookmarked article to bypass initial load fetches."
+        },
+        "thumbnail": {
+          "type": "string",
+          "nullable": true,
+          "description": "Cached thumbnail preview image URL."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 bookmark save timestamp."
+        }
+      }
+    },
+    "articles": {
+      "path": "/articles/{articleId}",
+      "description": "Central registry holding full news articles, reviews, opinion pieces, and scheduled publish markers.",
+      "securityConstraints": {
+        "read": "true (unrestricted for SEO crawlers and guests)",
+        "create": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor', 'journalist'])",
+        "update": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor', 'journalist'])",
+        "delete": "request.auth != null && (getUserRole() in ['super_admin', 'admin'])"
+      },
+      "fields": {
+        "title": {
+          "type": "string",
+          "description": "Headline in Nepali or English."
+        },
+        "content": {
+          "type": "string",
+          "description": "Full HTML or markdown-rendered copy of the article body."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Short 150-character narrative synopsis for SEO meta-tags and preview cards."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference key of the corresponding Category document."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "User UID of the composing journalist or photographer."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Public name display of the author."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "assigned",
+            "under_review",
+            "fact_check",
+            "approved",
+            "scheduled",
+            "published",
+            "archived"
+          ],
+          "description": "Active editorial step the document occupies."
+        },
+        "featuredImage": {
+          "type": "string",
+          "nullable": true,
+          "description": "Main banner landscape image URL."
+        },
+        "views": {
+          "type": "integer",
+          "description": "Read counter incremented progressively via viewer page hits."
+        },
+        "isBreaking": {
+          "type": "boolean",
+          "description": "Toggles active promotion into the top-most home page alerts strip."
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Toggles placement into the top grid block layout."
+        },
+        "publishAt": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true,
+          "description": "Future timestamp scheduled for dynamic publish cron transitions."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 revision timestamp."
+        }
+      }
+    },
+    "articleVersions": {
+      "path": "/articleVersions/{versionId}",
+      "description": "Immutable version tracking backups supporting click-to-restore history in the Editor.",
+      "securityConstraints": {
+        "read": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor'])",
+        "create": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor'])",
+        "update": "false (Immutable archive history)",
+        "delete": "false (Unconditionally forbidden to prevent editorial audit covering)"
+      },
+      "fields": {
+        "articleId": {
+          "type": "string",
+          "description": "Target article identifier link."
+        },
+        "title": {
+          "type": "string",
+          "description": "Headline capture at current version index."
+        },
+        "content": {
+          "type": "string",
+          "description": "Content body backup snapshot."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Excerpt backup snapshot."
+        },
+        "versionNumber": {
+          "type": "integer",
+          "description": "Incremental iteration count (e.g., 1, 2, 3)."
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "UID of the editor performing the transaction."
+        },
+        "updatedByName": {
+          "type": "string",
+          "description": "Full name string of the editor."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 snapshot creation timestamp."
+        }
+      }
+    },
+    "categories": {
+      "path": "/categories/{catId}",
+      "description": "List of system navigation items and thematic descriptors.",
+      "securityConstraints": {
+        "read": "true",
+        "write": "request.auth != null && (getUserRole() in ['super_admin', 'admin'])"
+      },
+      "fields": {
+        "nameNepali": {
+          "type": "string",
+          "description": "Localized category name (e.g., राजनीति)."
+        },
+        "nameEnglish": {
+          "type": "string",
+          "description": "English name (e.g., Politics)."
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly string slug used in router matching."
+        },
+        "order": {
+          "type": "integer",
+          "description": "Sorting sequence index in main navigation bar."
+        },
+        "homepageStyle": {
+          "type": "string",
+          "description": "Determines layout layout style (e.g., 'grid', 'list', 'bento')."
+        }
+      }
+    },
+    "storyAssignments": {
+      "path": "/storyAssignments/{assignmentId}",
+      "description": "Active story assignments tracking news distribution to reporters.",
+      "securityConstraints": {
+        "read": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor'] || existing().assignedTo == request.auth.uid)",
+        "create": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor'])",
+        "update": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor'] || (existing().assignedTo == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes', 'updatedAt'])))",
+        "delete": "request.auth != null && (getUserRole() in ['super_admin', 'admin'])"
+      },
+      "fields": {
+        "title": {
+          "type": "string",
+          "description": "Task topic or angle target."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed guidelines and sources to contact."
+        },
+        "assignedTo": {
+          "type": "string",
+          "description": "UID of target journalist or photographer."
+        },
+        "assignedToName": {
+          "type": "string",
+          "description": "Name of the assigned staff member."
+        },
+        "assignedBy": {
+          "type": "string",
+          "description": "UID of distributing chief editor."
+        },
+        "assignedByName": {
+          "type": "string",
+          "description": "Name of the distributing editor."
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Expected delivery date."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["assigned", "in_progress", "submitted", "completed"],
+          "description": "Current execution state."
+        },
+        "notes": {
+          "type": "string",
+          "nullable": true,
+          "description": "Status notes or review comments."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Assignment timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last edit timestamp."
+        }
+      }
+    },
+    "coverageCalendar": {
+      "path": "/coverageCalendar/{eventId}",
+      "description": "Dynamic layout timeline showing physical events, holy festivals, and press meets planned for coverage.",
+      "securityConstraints": {
+        "read": "request.auth != null",
+        "write": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor'])"
+      },
+      "fields": {
+        "title": {
+          "type": "string",
+          "description": "Event name (e.g., महाशिवरात्रि पर्व)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Coverage scope and logistical guidelines."
+        },
+        "category": {
+          "type": "string",
+          "description": "Event category tag."
+        },
+        "eventDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Specific calendar occurrence day."
+        },
+        "location": {
+          "type": "string",
+          "nullable": true,
+          "description": "Physical coverage location."
+        },
+        "assignedTo": {
+          "type": "array",
+          "description": "String list of assigned user UIDs."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planned", "active", "completed"],
+          "description": "Logistical stage of planning."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Scheduling timestamp."
+        }
+      }
+    },
+    "campaigns": {
+      "path": "/campaigns/{campaignId}",
+      "description": "AdOps V2 campaign manager tracking budget expenditures, clicks, impressions, and advertiser creative parameters.",
+      "securityConstraints": {
+        "read": "true",
+        "write": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'advertiser'])"
+      },
+      "fields": {
+        "name": {
+          "type": "string",
+          "description": "Sponsorship/campaign identifier name."
+        },
+        "advertiserName": {
+          "type": "string",
+          "description": "Corporate client or advertising partner name."
+        },
+        "creativeUrl": {
+          "type": "string",
+          "description": "HTTPS URL link pointing to the banner creative image."
+        },
+        "placement": {
+          "type": "string",
+          "enum": ["top_banner", "sidebar_box", "floating_skin"],
+          "description": "Assigned spot layout in client screens."
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Active coverage starts."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Active coverage closes."
+        },
+        "budget": {
+          "type": "number",
+          "description": "Contract value in NPR (रु.)."
+        },
+        "spent": {
+          "type": "number",
+          "description": "Realized billing spent dynamically compiled."
+        },
+        "impressions": {
+          "type": "integer",
+          "description": "Total layout impression page triggers."
+        },
+        "clicks": {
+          "type": "integer",
+          "description": "Total user hover-clicks counted."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Toggle displaying banner active on front feeds."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        }
+      }
+    },
+    "auditLogs": {
+      "path": "/auditLogs/{logId}",
+      "description": "Strict, write-once immutable ledger tracking every admin role modification, status transition, article deletion, and takeover event.",
+      "securityConstraints": {
+        "read": "request.auth != null && (getUserRole() in ['super_admin', 'admin'])",
+        "create": "request.auth != null && incoming().userId == request.auth.uid",
+        "update": "false (Strict historical protection)",
+        "delete": "false (Strict anti-defacement protection)"
+      },
+      "fields": {
+        "action": {
+          "type": "string",
+          "description": "Normalized identifier (e.g., ARTICLE_PUBLISHED, ROLE_MODIFIED)."
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the acting user."
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email address of the acting user."
+        },
+        "userName": {
+          "type": "string",
+          "description": "Operator name."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Free-form JSON dictionary encapsulating state modifications."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "System generated ISO date."
+        }
+      }
+    },
+    "analytics": {
+      "path": "/analytics/{metricId}",
+      "description": "Telemetry collection logs measuring article scroll depths, reading speeds, bounces, and views.",
+      "securityConstraints": {
+        "read": "request.auth != null && (getUserRole() in ['super_admin', 'admin', 'chief_editor', 'editor'])",
+        "create": "true (Allows reader clients to report metrics anonymously)",
+        "update": "true (Increments views and counters on the fly)",
+        "delete": "request.auth != null && (getUserRole() in ['super_admin', 'admin'])"
+      },
+      "fields": {
+        "articleId": {
+          "type": "string",
+          "nullable": true,
+          "description": "Associated article (null if general homepage telemetry)."
+        },
+        "category": {
+          "type": "string",
+          "nullable": true,
+          "description": "Associated category tag."
+        },
+        "pageViews": {
+          "type": "integer",
+          "description": "Cumulative view counter."
+        },
+        "uniqueReaders": {
+          "type": "integer",
+          "description": "Unique session cookie count."
+        },
+        "avgReadingTime": {
+          "type": "integer",
+          "description": "Average viewer duration on target screen in seconds."
+        },
+        "scrollDepth": {
+          "type": "integer",
+          "description": "Average vertical pixel scroll percentage (e.g. 75)."
+        },
+        "bounceRate": {
+          "type": "integer",
+          "description": "Bounce probability percentage (e.g. 24)."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date",
+          "description": "Target tracking aggregation day (YYYY-MM-DD)."
+        }
+      }
+    }
+  },
+  "suggestedCompositeIndexes": [
+    {
+      "collectionGroup": "articles",
+      "queryScope": "Collection",
+      "fields": [
+        { "fieldPath": "categoryId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ],
+      "reason": "Powers category feeds sorted chronologically while respecting publishing states."
+    },
+    {
+      "collectionGroup": "articles",
+      "queryScope": "Collection",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ],
+      "reason": "Allows quick Kanban views and editor lists."
+    },
+    {
+      "collectionGroup": "storyAssignments",
+      "queryScope": "Collection",
+      "fields": [
+        { "fieldPath": "assignedTo", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "deadline", "order": "ASCENDING" }
+      ],
+      "reason": "Generates individual journalist queues sorted by urgent deadline tasks."
+    },
+    {
+      "collectionGroup": "campaigns",
+      "queryScope": "Collection",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "placement", "order": "ASCENDING" },
+        { "fieldPath": "endDate", "order": "ASCENDING" }
+      ],
+      "reason": "Fetches currently active ads that need rendering in top sliders and sidebars."
+    }
+  ]
+}

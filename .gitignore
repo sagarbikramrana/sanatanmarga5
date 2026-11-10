@@ -1,0 +1,32 @@
+node_modules/
+build/
+dist/
+.vite/
+coverage/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# Runtime job queues, generated snapshots & temporary caches
+data/
+public/snapshots/
+public/uploads/
+data/snapshot_store.json
+data/snapshots/
+data/tts_jobs.json
+data/vault/archives/
+public/uploads/vault-archives/
+*.zip
+data/*.corrupt.*
+data/*.previous.*
+
+# Secrets and Private Credentials
+*service-account*.json
+*service_account*.json
+*credentials*.json
+*.pem
+*.key
+*.cert
+

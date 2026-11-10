@@ -1,0 +1,226 @@
+DSH VISION - TOOL REGISTRATION CONTRACT
+
+========== DSH TOOLS PACKAGE MANIFEST ==========
+
+{
+  "name": "@deepseek-ai/dsh-tools",
+  "description": "Tool registry and execution pipeline for the DeepSeek Harness",
+  "version": "0.2.2-rc.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/core/tools"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./presentation": {
+      "types": "./lib/types/presentation.d.ts",
+      "default": "./lib/types/presentation.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./pipeline": {
+      "types": "./lib/types/pipeline.d.ts",
+      "default": "./lib/pipeline.js"
+    }
+  },
+  "files": [
+    "locale/*.json",
+    "lib/index.js",
+    "lib/pipeline.js",
+    "lib/shared-*.js",
+    "lib/types/**/*.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-scope": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-user-approval": "0.2.2-rc.1"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-brand": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-util-values": "0.2.2-rc.1",
+    "@deepseek-ai/schemastery": "~3.19.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-scope": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-tool-testkit": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-user-approval": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-agent-loop-testkit": "0.2.2-rc.1"
+  }
+}
+
+========== DSH TOOLS SOURCE EXPORTS ==========
+
+import { a as ToolNotFoundError, c as assertObjectJsonSchema, d as isPlainJsonArray, f as isPlainJsonRecord, h as ToolExecutorUnavailableError, i as ToolActivationError, l as assertSupportedJsonSchema, m as ToolBatchExecutionError, n as TOOL_ABORTED, o as ToolOutputError, p as validateJsonSchemaValue, r as TOOL_ABORTED_BEFORE_DISPATCH, s as JsonSchemaError, t as RUN_CODE_NAME, u as isJsonSchemaRecord } from "./shared-DTdn5dXO.js";
+import { Service } from "@deepseek-ai/cordis";
+import z from "@deepseek-ai/schemastery";
+import { AnonymousEntries, NamedEntries, ScopedLayers, scopeChainOf, scopeOf } from "@deepseek-ai/dsh-scope";
+import { HarnessError } from "@deepseek-ai/dsh-llm";
+import { snapshotJsonValue } from "@deepseek-ai/dsh-util-values";
+//#region lib/types/schema.js
+/** Unified JSON-value schema DSL, inference, compilation, and tool definition helpers. @module dsh-tools/schema */
+const ANNOTATION_KEYS = [
+	"description",
+	"title",
+	"default",
+	"examples"
+];
+/** Throw one author-schema violation through the shared schema error type. */
+
+========== TOOL DEFINITION AND REGISTRATION IMPLEMENTATION ==========
+
+
+========== TOOL DEFINITION AND REGISTRATION IMPLEMENTATION ==========
+
+
+> AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:1:import { a as ToolNotFoundError, c as assertObjectJsonSchema, d as isPlainJsonArray, f as isPlainJsonRecord, h as 
+ToolExecutorUnavailableError, i as ToolActivationError, l as assertSupportedJsonSchema, m as ToolBatchExecutionError, n as TOOL_ABORTED, o as ToolOutputError, p as validateJsonSchemaValue, r as 
+TOOL_ABORTED_BEFORE_DISPATCH, s as JsonSchemaError, t as RUN_CODE_NAME, u as isJsonSchemaRecord } from "./shared-DTdn5dXO.js";
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:2:import { Service } from "@deepseek-ai/cordis";
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:3:import z from "@deepseek-ai/schemastery";
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:4:import { AnonymousEntries, NamedEntries, ScopedLayers, scopeChainOf, scopeOf } from "@deepseek-ai/dsh-scope";
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:5:import { HarnessError } from "@deepseek-ai/dsh-llm";
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:6:import { snapshotJsonValue } from "@deepseek-ai/dsh-util-values";
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:7://#region lib/types/schema.js
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:8:/** Unified JSON-value schema DSL, inference, compilation, and tool definition helpers. @module dsh-tools/schema */
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:9:const ANNOTATION_KEYS = [
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:10:	"description",
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:11:	"title",
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:12:	"default",
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:13:	"examples"
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:14:];
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:15:/** Throw one author-schema violation through the shared schema error type. */
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:16:function authorError(message) {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:17:	throw new JsonSchemaError([message]);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:18:}
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:19:/** Copy own annotation fields for validation by the raw-schema boundary. */
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:261:* @param spec - schema for any JSON-value root.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:262:* @returns The asserted raw schema projection.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:263:*/
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:264:function valueSchemaSpecToJsonSchema(spec) {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:265:	const schema = compileValueSchema(spec, "schema");
+> AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:266:	assertSupportedJsonSchema(schema);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:267:	return schema;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:268:}
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:269:/**
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:270:* Compile the implicit open parameter object into raw JSON Schema.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:271:* @param spec - per-property parameter definitions.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:272:* @returns An object-rooted raw schema with no implicit-root openness override.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:273:*/
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:274:function parameterSchemaSpecToJsonSchema(spec) {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:275:	const compiled = compilePropertyMap(spec, "parameters");
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:276:	const schema = {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:277:		type: "object",
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:278:		properties: compiled.properties,
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:279:		...compiled.required === void 0 ? {} : { required: compiled.required }
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:280:	};
+> AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:281:	assertSupportedJsonSchema(schema);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:282:	return schema;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:283:}
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:284:/** Invalid model-generated arguments for a typed tool. */
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:285:var ToolArgsError = class extends HarnessError {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:286:	/** Individual violations in schema-walk order. */
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:287:	violations;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:288:	constructor(violations) {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:289:		super(`invalid arguments: ${violations.join("; ")}`, "INVALID_ARGS");
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:290:		this.name = "ToolArgsError";
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:291:		this.violations = violations;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:292:	}
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:293:};
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:294:/**
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:295:* Validate model-generated arguments against an implicit parameter schema.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:296:* @param spec - declared parameter schema.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:297:* @param args - candidate arguments, however malformed.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:298:* @returns Path-qualified violations; empty means valid.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:299:*/
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:305:* validation. Replay-only presenters validate softly and fall back to generic
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:306:* rendering for obsolete logged arguments.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:307:* @param options - typed definition and optional finalizer and presenters.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:308:* @returns A registry-ready definition.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:309:*/
+> AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:310:function defineTool(options) {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:311:	const userExecute = options.execute;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:312:	const userFinalizeContent = options.finalizeContent;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:313:	const userProjectContent = options.projectContent;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:314:	const userRender = options.output.render;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:315:	const userPresentationMeta = options.output.presentationMeta;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:316:	const userPresentCall = options.presentCall;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:317:	const userPresentResult = options.presentResult;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:318:	const userIsConcurrencySafe = options.isConcurrencySafe;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:319:	if (options.timeoutMs !== void 0 && (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0)) throw new 
+Error(`defineTool(${options.name}): timeoutMs must be a positive finite number`);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:320:	const parameters = parameterSchemaSpecToJsonSchema(options.parameters);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:321:	const outputSchema = valueSchemaSpecToJsonSchema(options.output.schema);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:322:	const validate = (args) => validateJsonSchemaValue(parameters, args, "");
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:323:	const tool = {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:324:		name: options.name,
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:325:		description: options.description,
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:326:		parameters,
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:327:		output: {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:328:			schema: outputSchema,
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:428:	* globals; duplicates within one layer and the reserved `run_code` name fail.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:429:	* @param definition - tool schema, execution, and optional finalization/presentation callbacks.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:430:	* @param options - optional step-time activation condition.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:431:	* @returns the exact disposer that unregisters the tool.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:432:	*/
+> AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:433:	register(definition, options = {}) {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:434:		const name = definition.name;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:435:		const output = definition.output;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:436:		if (output === void 0 || typeof output !== "object" || typeof output.render !== "function" || 
+output.presentationMeta !== void 0 && typeof output.presentationMeta !== "function") throw new TypeError(`tool "${name}" must declare output { schema, render, presentationMeta? }`);
+> AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:437:		assertSupportedJsonSchema(output.schema);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:438:		const timeoutMs = definition.timeoutMs;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:439:		if (timeoutMs !== void 0 && (!Number.isFinite(timeoutMs) || timeoutMs <= 0)) throw new TypeError(`tool "${name}" 
+timeoutMs must be a positive finite number`);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:440:		if (name === "run_code") throw new Error(`tool name "${RUN_CODE_NAME}" is reserved for the PTC mode presentation 
+transport and cannot be registered or shadowed`);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:441:		return this.layers.effect(this.ctx, (layer) => layer.tools.insert(name, {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:442:			definition,
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:443:			when: options.when
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:444:		}), { label: "tools.register()" });
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:445:	}
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:446:	/**
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:447:	* Restrict global tools for the calling agent scope. Empty filters, unknown
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:448:	* names, scope-local names, and reserved transport names fail. Restrictions
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:449:	* intersect; scoped registrations remain visible.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:450:	* @param filter - global-tool mask: `allow` (keep only) and/or `deny` (remove).
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:451:	* @returns the exact disposer that lifts this restriction.
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:452:	*/
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:453:	restrict(filter) {
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:454:		const scope = scopeOf(this.ctx);
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:455:		if (scope === void 0) throw new Error("tools.restrict() requires a scoped context (agent.ctx): a context-global 
+restriction would mask every agent — deny the tool for the intended agent instead");
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:660:			if (reason !== void 0) return reason;
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:661:		}
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:662:	}
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:663:};
+  AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:664://#endregion
+> AppData\Local\npm-cache\_npx\b86ed90107c62dab\node_modules\@deepseek-ai\dsh-tools\lib\index.js:665:export { JsonSchemaError, RUN_CODE_NAME, TOOL_ABORTED, TOOL_ABORTED_BEFORE_DISPATCH, ToolActivationError, 
+ToolArgsError, ToolBatchExecutionError, ToolExecutorUnavailableError, ToolNotFoundError, ToolOutputError, ToolsService as ToolRuntime, ToolsService, ToolsService as default, assertObjectJsonSchema, 
+assertSupportedJsonSchema, defineTool, isJsonSchemaRecord, isPlainJsonArray, isPlainJsonRecord, parameterSchemaSpecToJsonSchema, projectToolSchema, validateArgs, validateJsonSchemaValue, valueSchemaSpecToJsonSchema };
+
+
+

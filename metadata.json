@@ -1,0 +1,8 @@
+{
+  "name": "Sanatan Media 5",
+  "description": "A professional, full-stack Nepali news portal featuring real-time updates, multi-user role management, and a modern editorial dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

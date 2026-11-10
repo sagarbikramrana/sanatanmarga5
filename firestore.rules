@@ -1,0 +1,904 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- 1. Global Primitives & Auth Helpers ---
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+    
+    function isEmailVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128; 
+    }
+
+    function incoming() { 
+      return request.resource.data; 
+    }
+
+    function existing() { 
+      return resource.data; 
+    }
+
+    // Fetches user role directly from Firestore (no client-side custom claims trust)
+    function getUserRole() {
+      return (request.auth != null && request.auth.token.email == 'sagarrana@gmail.com')
+        ? 'super_admin'
+        : (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user')
+            : 'user');
+    }
+
+    function hasUserRecord() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) || request.auth.token.email == 'sagarrana@gmail.com';
+    }
+
+    function hasRole(roles) {
+      return isSignedIn() && (
+        request.auth.token.email == 'sagarrana@gmail.com' ||
+        (hasUserRecord() && (getUserRole() in roles))
+      );
+    }
+
+    // Explicitly defines Admin, Editor, Staff, and Moderator bounds
+    function isAdmin() { 
+      return hasRole(['super_admin', 'admin', 'editorial_admin']);
+    }
+    
+    function isEditor() {
+      return hasRole(['super_admin', 'admin', 'editorial_admin', 'chief_editor', 'senior_editor', 'editor']);
+    }
+
+    function isStaff() {
+      return hasRole(['super_admin', 'admin', 'editorial_admin', 'chief_editor', 'senior_editor', 'editor', 'journalist', 'fact_checker', 'photographer', 'video_editor', 'moderator']);
+    }
+
+    function isModerator() {
+      return hasRole(['super_admin', 'admin', 'editorial_admin', 'chief_editor', 'senior_editor', 'editor', 'moderator']);
+    }
+
+    // --- 2. Collection Rules ---
+
+    // COMMERCE OS & SANATAN STORE (SEC-02: Hardened Access)
+    match /commerce_products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    match /commerce_orders/{orderId} {
+      // Sensitive Customer Orders: Public unauthenticated read strictly forbidden
+      allow get: if isAdmin() || isEditor() || (isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.customerEmail == request.auth.token.email
+      ));
+      allow list: if isAdmin() || isEditor() || (isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.customerEmail == request.auth.token.email
+      ));
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      allow update: if isAdmin() || isEditor() || (
+        isSignedIn() && 
+        resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes', 'address', 'phone'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /commerce_customers/{customerId} {
+      allow get: if isSignedIn() && (request.auth.uid == customerId || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isSignedIn() && (request.auth.uid == customerId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // BACKEND STORE OS & PRODUCTS/ORDERS (Authoritative Server/Admin controlled)
+    match /store_products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    match /store_orders/{orderId} {
+      allow get: if isAdmin() || (isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.customerId == request.auth.uid
+      ));
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /store_order_audits/{auditId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // USERS Profiles (SEC-01: Zero-Trust Client Role Hardening)
+    match /users/{uid} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == uid && (
+        request.resource.data.get('role', 'user') == 'user' ||
+        (request.auth.token.email == 'sagarrana@gmail.com' && request.resource.data.role == 'super_admin')
+      );
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (request.auth.uid == uid && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'customPermissions', 'status', 'isBanned', 'membershipTier'])
+        ))
+      );
+      allow delete: if isAdmin();
+
+      // BOOKMARKS subcollection
+      match /bookmarks/{articleId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // EDITORIAL WORKFLOW CANDIDATES (PHASE 4B.1)
+    // Server-authoritative candidate lifecycle. Internal until published to /articles.
+    // Client SDK direct writes are strictly prohibited; mutations occur via authenticated server API.
+    match /editorial_candidates/{candidateId} {
+      allow read: if isStaff() || isEditor();
+      allow write: if false;
+    }
+
+    // SNAPSHOT INVALIDATION OUTBOX (PHASE 4B.1U)
+    // Server-authoritative durable outbox for snapshot invalidation jobs.
+    // Client SDK direct access is forbidden; managed exclusively by server Admin SDK.
+    match /snapshot_invalidation_outbox/{jobId} {
+      allow read, write: if false;
+    }
+
+    // ARTICLES
+    match /articles/{articleId} {
+      allow read: if true;
+      allow create, update: if isStaff();
+      allow delete: if isAdmin() || isEditor();
+    }
+
+    // ANNOUNCEMENTS
+    match /announcements/{annId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // ARTICLE VERSIONS (Immutable Revision History)
+    match /articleVersions/{versionId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if false;
+    }
+
+    // CATEGORIES
+    match /categories/{catId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // EVENTS (Coverage tracking)
+    match /events/{eventId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+      
+      match /media/{mediaId} {
+        allow read: if true;
+        allow create, update, delete: if isStaff() || isAdmin();
+      }
+    }
+
+    // EVENT COMMENTS
+    match /event_comments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().get('userId', '') == request.auth.uid;
+      allow update: if isSignedIn() && (
+        (existing().get('userId', '') == request.auth.uid && incoming().get('userId', '') == request.auth.uid) ||
+        isStaff() || isAdmin()
+      );
+      allow delete: if isSignedIn() && (
+        existing().get('userId', '') == request.auth.uid ||
+        isStaff() || isAdmin()
+      );
+    }
+
+    // MODELS (Photographers and Talent)
+    match /models/{modelId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    // COMMUNITY POSTS
+    match /communityPosts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (
+        incoming().get('authorId', incoming().get('userId', '')) == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        (existing().get('authorId', existing().get('userId', '')) == request.auth.uid) ||
+        isModerator()
+      );
+      allow delete: if isSignedIn() && (
+        (existing().get('authorId', existing().get('userId', '')) == request.auth.uid) ||
+        isModerator()
+      );
+    }
+
+    // NOTIFICATIONS (A3: Strict Recipient & Server Dispatch Authority)
+    match /notifications/{notifId} {
+      allow get: if isSignedIn() && (
+        resource.data.get('userId', resource.data.get('recipientId', '')) == request.auth.uid ||
+        isAdmin() || isStaff()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.get('userId', resource.data.get('recipientId', '')) == request.auth.uid ||
+        isAdmin() || isStaff()
+      );
+      allow create: if isAdmin() || isStaff() || (
+        isSignedIn() && incoming().get('userId', incoming().get('recipientId', '')) == request.auth.uid
+      );
+      allow update: if isSignedIn() && (
+        (resource.data.get('userId', resource.data.get('recipientId', '')) == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt', 'status', 'dismissed'])) ||
+        isAdmin() || isStaff()
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.get('userId', resource.data.get('recipientId', '')) == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // NOTIFICATION TEMPLATES
+    match /notificationTemplates/{templateId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // NOTIFICATION CAMPAIGNS
+    match /notificationCampaigns/{campaignId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // MODERATION OS (COMMUNITY MODERATION SYSTEM)
+    match /communityReports/{reportId} {
+      allow read: if isModerator() || isAdmin();
+      allow create: if isSignedIn() && incoming().get('reporterId', incoming().get('userId', '')) == request.auth.uid;
+      allow update, delete: if isModerator() || isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isModerator() || isAdmin();
+      allow create: if isSignedIn() && incoming().get('reporterId', incoming().get('userId', '')) == request.auth.uid;
+      allow update, delete: if isModerator() || isAdmin();
+    }
+
+    match /moderationActions/{actionId} {
+      allow read: if isModerator() || isAdmin();
+      allow create: if isModerator() || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /appeals/{appealId} {
+      allow get: if isSignedIn() && (resource.data.get('userId', '') == request.auth.uid || isModerator() || isAdmin());
+      allow list: if isModerator() || isAdmin();
+      allow create: if isSignedIn() && incoming().get('userId', '') == request.auth.uid;
+      allow update: if isModerator() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /bannedUsers/{banId} {
+      allow read: if isModerator() || isAdmin();
+      allow write: if isAdmin() || isModerator();
+    }
+
+    // MENU ITEMS (Navigation settings)
+    match /menuItems/{itemId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // NEWSLETTER SUBSCRIBERS
+    match /newsletterSubscribers/{subId} {
+      allow read: if isAdmin() || isEditor();
+      allow create: if incoming().get('email', '') is string && incoming().email.size() > 3;
+      allow update, delete: if isAdmin();
+    }
+
+    // COMMUNITY VOTES & COMMENTS
+    match /communityVotes/{voteId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && incoming().get('userId', '') == request.auth.uid;
+      allow delete: if isSignedIn() && (existing().get('userId', '') == request.auth.uid || isModerator());
+    }
+
+    match /liveChat/{msgId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().get('userId', incoming().get('senderId', '')) == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        existing().get('userId', existing().get('senderId', '')) == request.auth.uid ||
+        isModerator()
+      );
+    }
+
+    match /liveVideos/{videoId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /live_updates/{updateId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /live_polls/{pollId} {
+      allow read: if true;
+      allow create, delete: if isStaff() || isAdmin();
+      allow update: if isStaff() || isAdmin() || (
+        isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes', 'totalVotes', 'userVotes'])
+      );
+    }
+
+    match /photographers/{phId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().get('userId', incoming().get('authorId', '')) == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        existing().get('userId', existing().get('authorId', '')) == request.auth.uid ||
+        isModerator()
+      );
+    }
+
+    match /communityComments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().get('userId', incoming().get('authorId', '')) == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        existing().get('userId', existing().get('authorId', '')) == request.auth.uid ||
+        isModerator()
+      );
+    }
+
+    match /galleryComments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().get('userId', '') == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        existing().get('userId', '') == request.auth.uid ||
+        isStaff() || isAdmin()
+      );
+    }
+
+    match /galleryReactions/{reactionId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && incoming().get('userId', '') == request.auth.uid;
+      allow delete: if isSignedIn() && existing().get('userId', '') == request.auth.uid;
+    }
+
+    // GLOBAL SETTINGS (Super Admin and Admin; Editors can publish homepage and layout settings)
+    match /settings/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || (isEditor() && (
+        docId == 'homepage' || 
+        docId == 'homepage_history' || 
+        docId == 'site_settings'
+      ));
+    }
+
+    // DISASTER RECOVERY LOGS & BACKUP HISTORY (Immutable Ledger)
+    match /disaster_recovery_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // SYSTEM MANAGEMENT & OPERATIONAL COLLECTIONS
+    match /tags/{tagId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /authors/{authorId} {
+      allow read: if true;
+      allow create, update, delete: if isEditor() || isAdmin();
+    }
+
+    match /pages/{pageId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /agents/{agentId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /menus/{menuId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /roles/{roleId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /permissions/{permId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /media_assets/{assetId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /snapshots/{snapId} {
+      allow read: if true;
+      allow create, update: if isAdmin() || isEditor();
+      allow delete: if isAdmin();
+    }
+
+    match /inquiries/{inqId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isStaff() || isAdmin();
+    }
+
+    match /contact_messages/{msgId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isStaff() || isAdmin();
+    }
+
+    match /workflows/{wfId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    match /community_posts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().get('userId', incoming().get('authorId', '')) == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        existing().get('userId', existing().get('authorId', '')) == request.auth.uid ||
+        isModerator()
+      );
+    }
+
+    match /community_comments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().get('userId', incoming().get('authorId', '')) == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        existing().get('userId', existing().get('authorId', '')) == request.auth.uid ||
+        isModerator()
+      );
+    }
+
+    // INQUIRIES & CONTACT MESSAGES
+    match /contactMessages/{msgId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isStaff() || isAdmin();
+    }
+
+    match /modelInquiries/{inqId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isStaff() || isAdmin();
+    }
+
+    match /agentInquiries/{inqId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isStaff() || isAdmin();
+    }
+
+    // IMMUTABLE AUDIT LOGS (Immutable Ledger: creates allowed, updates/deletes strictly blocked)
+    match /auditLogs/{logId} {
+      allow read: if isStaff();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // DUAL-KEY APPROVAL SYSTEM (Requester cannot approve own request, delete strictly blocked)
+    match /dualKeyApprovals/{approvalId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && incoming().requesterId == request.auth.uid && incoming().status == "pending_approval";
+      allow update: if isAdmin() && 
+                      incoming().requesterId == existing().requesterId && 
+                      (incoming().status == "approved" || incoming().status == "rejected") && 
+                      request.auth.uid != existing().requesterId && 
+                      incoming().approverId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // STORY ASSIGNMENTS
+    match /storyAssignments/{assignmentId} {
+      allow read: if isStaff();
+      allow create: if isEditor();
+      allow update: if isStaff();
+      allow delete: if isEditor();
+    }
+
+    // COVERAGE CALENDAR
+    match /coverageCalendar/{eventId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    // BREAKING NEWS COMMAND CENTER
+    match /breakingNews/{configId} {
+      allow read: if true;
+      allow create, update, delete: if isEditor() || isAdmin();
+    }
+
+    // AD CAMPAIGNS & MONETIZATION OS (ADS V2)
+    match /campaigns/{campaignId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    match /adCampaigns/{campaignId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    match /adCreatives/{creativeId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // ADS & MONETIZATION
+    match /ads/{adId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    match /adAnalytics/{logId} {
+      allow read: if isAdmin() || isEditor();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // MEDIA ASSETS (Sprint D)
+    match /mediaAssets/{assetId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    // ANALYTICS (Incremental and aggregation counters)
+    match /analytics/{metricId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // OPERATIONAL TELEMETRY LOGS (Sprint A)
+    match /activityLogs/{logId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // EXCEPTION AND ERROR LOGS (Sprint A)
+    match /errorEvents/{errorId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /systemHealth/{healthId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // NEPAL AUDIOS
+    match /nepalAudios/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepalHubIntelligence/{id} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    // NEPAL HUB COLLECTIONS
+    match /nepal_hub/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepal_hub_live_updates/{updateId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepalHubLiveUpdates/{updateId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepal_hub_festivals/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepal_hub_markets/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepal_hub_districts/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepal_hub_briefings/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepal_hub_sponsors/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /nepal_hub_knowledge/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /knowledge_base/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /knowledgeNodes/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /knowledge_edges/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /knowledge_references/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /knowledge_audit_events/{id} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // ARCHIVES OS (Sprint R1)
+    match /archives/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin() || isEditor();
+    }
+
+    match /archive_audit_logs/{id} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // TENANTS & TENANT WORKFLOWS (SEC-05: Tenant Mutation Hardening)
+    match /tenants/{tenantId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /tenant_workflows/{wfId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // SANATAN MARGA SOCIAL MEDIA ACCOUNTS & POSTS
+    match /socialAccounts/{accountId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /socialPosts/{postId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /discoveryQueue/{storyId} {
+      allow read: if isStaff() || isAdmin();
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /hotTopics/{topicId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /watchdogTelemetry/{id} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // PWA TELEMETRY
+    match /pwa_telemetry/{docId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // LISTENOS AUDIO & SPONSORS
+    match /listenos_config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() || isEditor();
+    }
+
+    match /sponsor_campaigns_realtime/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || isEditor();
+    }
+
+    // RADIO & ACADEMY & ADVERTISING INFRASTRUCTURE
+    match /radioPrograms/{docId} {
+      allow read: if true;
+      allow write: if isStaff() || isAdmin();
+    }
+
+    match /radioSchedule/{docId} {
+      allow read: if true;
+      allow write: if isStaff() || isAdmin();
+    }
+
+    match /festivals/{docId} {
+      allow read: if true;
+      allow write: if isStaff() || isAdmin();
+    }
+
+    match /academy_courses/{docId} {
+      allow read: if true;
+      allow write: if isStaff() || isAdmin();
+    }
+
+    match /academy_campaigns/{docId} {
+      allow read: if true;
+      allow write: if isStaff() || isAdmin();
+    }
+
+    match /academy_ad_telemetry/{docId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /adAuditLogs/{docId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    match /adDeliveryEvents/{docId} {
+      allow read: if isAdmin() || isEditor();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /advertiser_inquiries/{docId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isStaff() || isAdmin();
+    }
+
+    match /advertisers/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() || isEditor();
+    }
+
+    match /canonical_story_registry/{docId} {
+      allow read: if true;
+      allow write: if isStaff() || isAdmin();
+    }
+
+    match /content_registry/{docId} {
+      allow read: if true;
+      allow write: if isStaff() || isAdmin();
+    }
+
+    match /knowledge_audit_logs/{docId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    match /livePins/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /liveReports/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /paymentReceipts/{docId} {
+      allow get: if isAdmin() || (isSignedIn() && (resource.data.get('userId', resource.data.get('customerId', '')) == request.auth.uid));
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /taxInvoices/{docId} {
+      allow get: if isAdmin() || (isSignedIn() && (resource.data.get('userId', resource.data.get('customerId', '')) == request.auth.uid));
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /timeline_audit_logs/{docId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    match /audit_logs/{docId} {
+      allow read: if isStaff() || isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    match /reputation_tracker/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    match /sgis_manuscripts/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff() || isAdmin();
+    }
+
+    // TRAINING PROGRESS PERSISTENCE & CERTIFICATIONS (TRAIN-P0-01, TRAIN-P0-02, TRAIN-P0-03, TRAIN-P0-04)
+    match /training_progress/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isStaff() || isAdmin());
+      allow create, update: if isSignedIn() && (
+        (request.auth.uid == userId && incoming().userId == userId) || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /training_certifications/{certId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() || hasRole(['super_admin', 'admin', 'chief_editor']);
+    }
+
+    match /training_attempts/{attemptId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isStaff() || isAdmin());
+      allow create: if isAdmin() || hasRole(['super_admin', 'admin']);
+      allow update, delete: if false;
+    }
+
+    match /training_badges/{badgeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /institutional_organizations/{orgId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // TEST COLLECTIONS
+    match /test/{docId} {
+      allow read, write: if isSignedIn() || isAdmin();
+    }
+
+    match /_connection_test_/{docId} { 
+      allow read, write: if isSignedIn() || isAdmin(); 
+    }
+  }
+}
