@@ -1,5 +1,6 @@
 import React, { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { useMediaOS } from "@/src/context/MediaOSContext";
 import ScrollToTopOnNav from "./ScrollToTopOnNav";
 import AnalyticsTracker from "./AnalyticsTracker";
 import ScrollProgress from "../ui/ScrollProgress";
@@ -98,7 +99,9 @@ interface AppShellProps {
 
 export default function AppShell({ children }: AppShellProps) {
   const location = useLocation();
+  const mediaOS = useMediaOS();
   const stickyConfig = getRouteStickyConfig(location.pathname);
+  const isPlayerDocked = stickyConfig.persistentPlayer && mediaOS.playerState !== "hidden";
 
   return (
     <div className="relative min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
@@ -113,7 +116,7 @@ export default function AppShell({ children }: AppShellProps) {
       <SyncStatusBadge />
 
       {/* Main Routed Page Content */}
-      <main className="flex-1 w-full relative">
+      <main className={`flex-1 w-full relative transition-all duration-300 ${isPlayerDocked ? "md:pb-20 pb-28" : ""}`}>
         {children}
       </main>
 

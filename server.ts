@@ -1343,22 +1343,20 @@ Instructions:
       let resolvedTitle = title || "";
 
       if (id && id !== "custom") {
-        // Resolve canonical published content
-        const snapshotArt = sos.snapshotStore[`article_${id}`]?.data?.article;
+        // Resolve canonical published content or dynamic user-created content
+        const snapshotArt = sos.snapshotStore[`article_${id}`]?.data?.article
+          || sos.dynamicArticles?.find((a: any) => a.id === id)
+          || sos.snapshotStore["homepage_ne"]?.data?.latestNews?.find((a: any) => a.id === id)
+          || sos.snapshotStore["homepage_ne"]?.data?.featuredArticles?.find((a: any) => a.id === id);
         if (snapshotArt) {
           resolvedText = snapshotArt.content || snapshotArt.excerpt || snapshotArt.title || resolvedText;
           resolvedTitle = snapshotArt.title || resolvedTitle;
         }
-      } else {
-        // Free-text arbitrary TTS synthesis requires authoritative staff authorization
-        const reqUser = await authenticateRequestUser(req, adminApp, adminDb);
-        const isStaff = Boolean(reqUser && ["admin", "superadmin", "chief_editor", "editor", "author"].includes(reqUser.role));
-        if (!isStaff) {
-          return res.status(403).json({
-            success: false,
-            error: "Arbitrary text TTS synthesis requires staff authorization. Please provide a valid published contentId."
-          });
-        }
+      }
+
+      // Safeguard maximum synthesis payload size
+      if (resolvedText && resolvedText.length > 4000) {
+        resolvedText = resolvedText.slice(0, 4000);
       }
 
       if (!resolvedText) {
@@ -1390,10 +1388,11 @@ Instructions:
     } catch (error: any) {
       const isQuota = error?.status === 429 || String(error?.message || "").includes("429") || String(error?.message || "").includes("RESOURCE_EXHAUSTED") || String(error?.message || "").includes("Quota exceeded");
       if (isQuota) {
-        console.warn("[TTS API Quota Limit]: Gemini TTS API rate limit reached, returning 429");
-        return res.status(429).json({
+        console.warn("[TTS API Quota Limit]: Gemini TTS API rate limit reached, returning quota status for browser fallback");
+        return res.status(200).json({
           success: false,
           code: "QUOTA_EXCEEDED",
+          fallbackToBrowser: true,
           error: "वाचन सेवा हाल सीमित छ (Gemini TTS API rate limit). कृपया केही समयपछि पुनः प्रयास गर्नुहोस्।"
         });
       }
@@ -1424,20 +1423,18 @@ Instructions:
       let resolvedTitle = title || "";
 
       if (id && id !== "custom") {
-        const snapshotArt = sos.snapshotStore[`article_${id}`]?.data?.article;
+        const snapshotArt = sos.snapshotStore[`article_${id}`]?.data?.article
+          || sos.dynamicArticles?.find((a: any) => a.id === id)
+          || sos.snapshotStore["homepage_ne"]?.data?.latestNews?.find((a: any) => a.id === id)
+          || sos.snapshotStore["homepage_ne"]?.data?.featuredArticles?.find((a: any) => a.id === id);
         if (snapshotArt) {
           resolvedText = snapshotArt.content || snapshotArt.excerpt || snapshotArt.title || resolvedText;
           resolvedTitle = snapshotArt.title || resolvedTitle;
         }
-      } else {
-        const reqUser = await authenticateRequestUser(req, adminApp, adminDb);
-        const isStaff = Boolean(reqUser && ["admin", "superadmin", "chief_editor", "editor", "author"].includes(reqUser.role));
-        if (!isStaff) {
-          return res.status(403).json({
-            success: false,
-            error: "Arbitrary text TTS synthesis requires staff authorization. Please provide a valid published contentId."
-          });
-        }
+      }
+
+      if (resolvedText && resolvedText.length > 4000) {
+        resolvedText = resolvedText.slice(0, 4000);
       }
 
       if (!id && !resolvedText) {
@@ -7102,8 +7099,20 @@ ${verifiedSummaryText}
       return res.json(sos.snapshotStore[cacheKey].data);
     }
 
+    if (folder === "article" || folder === "articles") {
+      const artSnap = sos.snapshotStore[`article_${cleanFile}`]?.data
+        || sos.dynamicArticles?.find((a: any) => a.id === cleanFile);
+      if (artSnap) {
+        return res.json(artSnap.article ? artSnap : { generatedAt: new Date().toISOString(), article: artSnap });
+      }
+    }
+
     if (folder === "notifications") {
       return res.json({ notifications: [], count: 0, unreadCount: 0 });
+    }
+
+    if (folder === "comments") {
+      return res.json({ comments: [], count: 0 });
     }
 
     return res.status(404).json({ error: `Nested snapshot '${cacheKey}' not found in cache` });

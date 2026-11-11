@@ -51,6 +51,7 @@ export const StorylinesPage = lazyWithRetry(() => import("../pages/StorylinesPag
 export const MySanatanPage = lazyWithRetry(() => import("../pages/MySanatanPage"));
 export const DailyDigestPage = lazyWithRetry(() => import("../pages/DailyDigestPage"));
 export const StorePage = lazyWithRetry(() => import("../pages/StorePage"));
+export const ProductDetailsPage = lazyWithRetry(() => import("../pages/ProductDetailsPage"));
 export const MembershipPage = lazyWithRetry(() => import("../pages/MembershipPage"));
 export const AcademyPage = lazyWithRetry(() => import("../pages/AcademyPage"));
 export const CourseDetailPage = lazyWithRetry(() => import("../pages/CourseDetailPage"));

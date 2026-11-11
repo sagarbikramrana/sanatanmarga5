@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Archive, Plus, Search, Edit3, Trash2, CheckCircle2, 
-  FileText, Link2, RefreshCw, X, Save, Eye, Sparkles, Filter, 
+import {
+  Archive, Plus, Search, Edit3, Trash2, CheckCircle2,
+  FileText, Link2, RefreshCw, X, Save, Eye, Sparkles, Filter,
   ExternalLink, AlertTriangle, ShieldCheck, Download, History,
   Scroll, Cpu, Check, ArrowRight, Layers, Upload
 } from "lucide-react";
-import { 
-  ArchiveRecord, 
-  ArchiveStatus, 
-  ArchiveVerificationStatus, 
-  ArchiveEra, 
-  ArchiveCategory, 
-  ArchiveManifest, 
+import {
+  ArchiveRecord,
+  ArchiveStatus,
+  ArchiveVerificationStatus,
+  ArchiveEra,
+  ArchiveCategory,
+  ArchiveManifest,
   ArchiveHealth,
   resolveArchiveDate
 } from "@/src/services/archive/archiveTypes";
@@ -232,7 +232,7 @@ export default function ArchivesOSAdmin() {
     const matchesCat = selectedCategory === "all" || r.category === selectedCategory;
     const matchesStatus = selectedStatus === "all" || r.status === selectedStatus;
     const s = searchTerm.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       (r.title || "").toLowerCase().includes(s) ||
       (r.titleNepali || "").includes(searchTerm) ||
       (r.id || "").toLowerCase().includes(s) ||
@@ -385,7 +385,7 @@ export default function ArchivesOSAdmin() {
             <Archive size={16} className="text-amber-500" />
             <span>अभिलेख सूची ({filteredRecords.length})</span>
           </h3>
-          <button 
+          <button
             onClick={loadData}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-text hover:text-foreground cursor-pointer transition-colors"
             title="रिफ्रेस गर्नुहोस्"
@@ -414,17 +414,16 @@ export default function ArchivesOSAdmin() {
                       <span className="px-2 py-0.5 rounded-md bg-muted-area text-muted-text text-[10px] font-bold uppercase">
                         {rec.era} • {rec.category}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                        rec.status === "published"
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : rec.status === "verified"
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${rec.status === "published"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : rec.status === "verified"
                           ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                           : rec.status === "pending_review"
-                          ? "bg-amber-500/10 text-amber-600"
-                          : rec.status === "draft"
-                          ? "bg-muted-area text-muted-text"
-                          : "bg-red-500/10 text-red-600"
-                      }`}>
+                            ? "bg-amber-500/10 text-amber-600"
+                            : rec.status === "draft"
+                              ? "bg-muted-area text-muted-text"
+                              : "bg-red-500/10 text-red-600"
+                        }`}>
                         {rec.status}
                       </span>
                       {rec.sgisRecordId && (
@@ -516,7 +515,7 @@ export default function ArchivesOSAdmin() {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -755,7 +754,7 @@ export default function ArchivesOSAdmin() {
       <AnimatePresence>
         {showAuditModal && auditReport && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -794,13 +793,12 @@ export default function ArchivesOSAdmin() {
               <div className="divide-y divide-border-theme space-y-3">
                 {auditReport.checks.map(check => (
                   <div key={check.code} className="pt-3 flex items-start gap-3">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase shrink-0 ${
-                      check.status === "pass"
-                        ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                        : check.status === "warn"
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase shrink-0 ${check.status === "pass"
+                      ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                      : check.status === "warn"
                         ? "bg-amber-500/10 text-amber-600 border border-amber-500/20"
                         : "bg-red-500/10 text-red-600 border border-red-500/20"
-                    }`}>
+                      }`}>
                       {check.code}
                     </span>
 
@@ -820,7 +818,7 @@ export default function ArchivesOSAdmin() {
       <AnimatePresence>
         {historyRecordId && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}

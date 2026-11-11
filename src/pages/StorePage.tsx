@@ -410,11 +410,13 @@ export default function StorePage() {
                   <div className="absolute inset-0 w-full h-full rounded-3xl bg-card border border-border-theme overflow-hidden flex flex-col justify-between [backface-visibility:hidden]">
                     {/* Image Area */}
                     <div className="relative h-48 bg-muted-area overflow-hidden">
-                      <img
-                        src={product.images?.[0] || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=600"}
-                        alt={product.nameNepali}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      <Link to={`/store/product/${product.id}`} className="block w-full h-full">
+                        <img
+                          src={product.images?.[0] || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=600"}
+                          alt={product.nameNepali}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </Link>
                       {hasSale && (
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
                           छुट (OFFER)
@@ -447,9 +449,11 @@ export default function StorePage() {
                             </span>
                           )}
                         </div>
-                        <h3 className="text-sm font-bold text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                          {language === "en" ? product.name : product.nameNepali}
-                        </h3>
+                        <Link to={`/store/product/${product.id}`} className="block">
+                          <h3 className="text-sm font-bold text-card-foreground line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+                            {language === "en" ? product.name : product.nameNepali}
+                          </h3>
+                        </Link>
                         <p className="text-xs text-muted-text line-clamp-2">
                           {language === "en" ? product.description : product.descriptionNepali}
                         </p>
@@ -551,6 +555,16 @@ export default function StorePage() {
                             <span className="text-muted-text block text-[9px] uppercase font-bold">उपलब्ध स्टक:</span>
                             <span className="font-black text-emerald-600">{product.stock} units (Ready)</span>
                           </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <Link
+                            to={`/store/product/${product.id}`}
+                            className="w-full py-2 px-3 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <BookOpen size={13} />
+                            <span>सम्पूर्ण विवरण हेर्नुहोस् (Full Details)</span>
+                          </Link>
                         </div>
                       </div>
                     </div>

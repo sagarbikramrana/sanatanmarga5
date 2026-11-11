@@ -37,27 +37,53 @@ function formatTimeAgo(isoString?: string, language: string = "ne") {
 
 // Deep Merge helper to prevent UI flicker and form resets on background revalidation
 function mergeDashboardState(current: any, fresh: any) {
-  if (!current) return fresh;
-  if (!fresh) return current;
-
-  return {
-    ...current,
-    ...fresh,
-    snapshot_version: fresh.snapshot_version || current.snapshot_version || "2.6.0",
-    generatedAt: fresh.generatedAt || current.generatedAt || new Date().toISOString(),
-    profile: { ...(current.profile || {}), ...(fresh.profile || {}) },
-    stats: { ...(current.stats || {}), ...(fresh.stats || {}) },
-    reputation: { ...(current.reputation || {}), ...(fresh.reputation || {}) },
-    learningProgress: { ...(current.learningProgress || {}), ...(fresh.learningProgress || {}) },
-    membership: { ...(current.membership || {}), ...(fresh.membership || {}) },
-    userArticles: fresh.userArticles?.length ? fresh.userArticles : (current.userArticles || []),
-    userComments: fresh.userComments?.length ? fresh.userComments : (current.userComments || []),
-    chautariPosts: fresh.chautariPosts?.length ? fresh.chautariPosts : (current.chautariPosts || []),
-    registeredEvents: fresh.registeredEvents?.length ? fresh.registeredEvents : (current.registeredEvents || []),
-    activityLogs: fresh.activityLogs?.length ? fresh.activityLogs : (current.activityLogs || []),
-    savedContent: fresh.savedContent?.length ? fresh.savedContent : (current.savedContent || []),
-    notifications: fresh.notifications?.length ? fresh.notifications : (current.notifications || [])
+  const merged = {
+    ...(current || {}),
+    ...(fresh || {}),
+    snapshot_version: fresh?.snapshot_version || current?.snapshot_version || "2.6.0",
+    generatedAt: fresh?.generatedAt || current?.generatedAt || new Date().toISOString(),
+    profile: { ...(current?.profile || {}), ...(fresh?.profile || {}) },
+    stats: { ...(current?.stats || {}), ...(fresh?.stats || {}) },
+    reputation: { ...(current?.reputation || {}), ...(fresh?.reputation || {}) },
+    learningProgress: { ...(current?.learningProgress || {}), ...(fresh?.learningProgress || {}) },
+    membership: { ...(current?.membership || {}), ...(fresh?.membership || {}) },
+    userArticles: fresh?.userArticles?.length ? fresh.userArticles : (current?.userArticles || []),
+    userComments: fresh?.userComments?.length ? fresh.userComments : (current?.userComments || []),
+    chautariPosts: fresh?.chautariPosts?.length ? fresh.chautariPosts : (current?.chautariPosts || []),
+    registeredEvents: fresh?.registeredEvents?.length ? fresh.registeredEvents : (current?.registeredEvents || []),
+    activityLogs: fresh?.activityLogs?.length ? fresh.activityLogs : (current?.activityLogs || []),
+    savedContent: fresh?.savedContent?.length ? fresh.savedContent : (current?.savedContent || []),
+    notifications: fresh?.notifications?.length ? fresh.notifications : (current?.notifications || [])
   };
+
+  // Synchronize client local app features if remote lists are empty
+  try {
+    if (!merged.savedContent || merged.savedContent.length === 0) {
+      const localBookmarks = localStorage.getItem("sanatan_bookmarks") || localStorage.getItem("bookmarks");
+      if (localBookmarks) {
+        merged.savedContent = JSON.parse(localBookmarks);
+      }
+    }
+  } catch (e) {}
+
+  try {
+    if (!merged.chautariPosts || merged.chautariPosts.length === 0) {
+      const localPosts = localStorage.getItem("chautari_local_posts") || localStorage.getItem("sanatan_chautari_posts");
+      if (localPosts) {
+        merged.chautariPosts = JSON.parse(localPosts);
+      }
+    }
+  } catch (e) {}
+
+  // Recalculate stats with accurate client totals
+  merged.stats = {
+    ...(merged.stats || {}),
+    savedCount: merged.savedContent?.length || merged.stats?.savedCount || 0,
+    communityPosts: merged.chautariPosts?.length || merged.stats?.communityPosts || 0,
+    communityComments: merged.userComments?.length || merged.stats?.communityComments || merged.stats?.comments || 0,
+  };
+
+  return merged;
 }
 
 export default function ProfilePage() {

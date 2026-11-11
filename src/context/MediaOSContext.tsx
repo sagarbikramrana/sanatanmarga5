@@ -94,6 +94,7 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isSpeechFallback = useRef<boolean>(false);
   const lastEmittedTimeRef = useRef<number>(0);
+  const lastTrackStartTimeRef = useRef<number>(0);
 
   // Sync refs to avoid stale closures in callbacks
   const queueRef = useRef<PlaylistItem[]>(queue);
@@ -116,6 +117,13 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Track termination & Auto-advance
   const handleTrackEnded = useCallback(() => {
+    // If track finished/errored in under 1.5s, prevent runaway skip loops across queue
+    if (Date.now() - lastTrackStartTimeRef.current < 1500) {
+      setIsPlaying(false);
+      setIsBuffering(false);
+      return;
+    }
+
     const q = queueRef.current;
     const currIdx = currentIndexRef.current;
     const mode = repeatModeRef.current;
@@ -137,9 +145,14 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const currIdx = currentIndexRef.current;
     const track = currIdx >= 0 && currIdx < q.length ? q[currIdx] : null;
 
-    if (!track || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (!track || typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setIsPlaying(false);
+      setIsBuffering(false);
+      return;
+    }
     window.speechSynthesis.cancel();
     isSpeechFallback.current = true;
+    lastTrackStartTimeRef.current = Date.now();
 
     const summary = track.contentSummary || "";
     const normTitle = track.title.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase();
@@ -155,6 +168,12 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     utterance.onend = () => {
       setIsPlaying(false);
       handleTrackEnded();
+    };
+
+    utterance.onerror = (e) => {
+      console.warn("[MediaOS] SpeechSynthesis error:", e);
+      setIsPlaying(false);
+      setIsBuffering(false);
     };
 
     speechUtteranceRef.current = utterance;
@@ -177,6 +196,7 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setPlayerState((prev) => (prev === "hidden" ? "minimized" : prev));
     setIsBuffering(true);
     setIsPlaying(false);
+    lastTrackStartTimeRef.current = Date.now();
 
     // Stop any speech synthesis
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -190,17 +210,21 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const activeGender = customVoice || voiceGenderRef.current;
     const voiceName = activeGender === "female" ? "Aoede" : "Fenrir";
 
+    // Clean audio source: filter out known 404/dead mock URLs
+    const isMock404 = track.audioUrl && track.audioUrl.includes("assets.sanatanmarga.com/audio/tts/");
+    const safeAudioUrl = isMock404 ? "" : (track.audioUrl || "");
+
     try {
       await audioPlaybackManager.playTrack(
         {
           id: track.articleId || track.id,
           title: track.title,
-          sourceUrl: track.audioUrl || "",
+          sourceUrl: safeAudioUrl,
           language: "ne",
           voice: voiceName,
         },
         async (signal) => {
-          if (track.audioUrl) return track.audioUrl;
+          if (safeAudioUrl) return safeAudioUrl;
           const bodyText = track.contentSummary || track.title;
           const result = await getHumanNepaliAudio(bodyText, {
             title: track.title,
@@ -209,7 +233,7 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
             articleId: track.articleId || track.id,
             contentId: track.articleId || track.id,
             contentType: "article",
-            audioUrl: track.audioUrl,
+            audioUrl: safeAudioUrl,
           });
           if (signal.aborted) {
             throw new DOMException("Aborted", "AbortError");
@@ -237,7 +261,7 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setCurrentIndex(0);
         currentIndexRef.current = 0;
       }
-      pregenerateQueueAudio(items, voiceGenderRef.current === "female" ? "Aoede" : "Fenrir", items.length);
+      pregenerateQueueAudio(items.slice(0, 2), voiceGenderRef.current === "female" ? "Aoede" : "Fenrir", 2);
     } catch (err) {
       console.warn("Failed to refresh ListenOS queue:", err);
     }
@@ -289,7 +313,7 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentIndexRef.current = validIdx;
       setQueueTitle(saved.queueTitle || "SanatanMarga Queue");
       setPlayerState("minimized");
-      pregenerateQueueAudio(saved.queue, voiceGenderRef.current === "female" ? "Aoede" : "Fenrir", saved.queue.length);
+      pregenerateQueueAudio(saved.queue.slice(0, 2), voiceGenderRef.current === "female" ? "Aoede" : "Fenrir", 2);
     } else {
       refreshListenOSQueue('free');
     }

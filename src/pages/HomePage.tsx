@@ -53,11 +53,28 @@ import PatroTools from "@/src/components/nepal/PatroTools";
 
 export default function HomePage() {
   const { t, language } = useLanguage();
-  const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
-  const [latestNews, setLatestNews] = useState<Article[]>([]);
-  const [videoNews, setVideoNews] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryArticles, setCategoryArticles] = useState<Record<string, Article[]>>({});
+
+  // Helper to read initial cached snapshot synchronously
+  const getInitialSnapshot = () => {
+    try {
+      const lang = language === "en" ? "en" : "ne";
+      const cached = safeLocalStorage.getItem(`sg_snapshot_homepage_${lang}`);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  };
+
+  const initialSnap = getInitialSnapshot();
+
+  const [featuredArticles, setFeaturedArticles] = useState<Article[]>(() => initialSnap?.featuredArticles || []);
+  const [latestNews, setLatestNews] = useState<Article[]>(() => initialSnap?.latestNews || []);
+  const [videoNews, setVideoNews] = useState<Article[]>(() => initialSnap?.videoNews || []);
+  const [categories, setCategories] = useState<Category[]>(() => initialSnap?.categories || []);
+  const [categoryArticles, setCategoryArticles] = useState<Record<string, Article[]>>(() => initialSnap?.categoryArticles || {});
 
   const [isHeroHidden, setIsHeroHidden] = useState(() => {
     return safeLocalStorage.getItem("homepageHeroHidden") === "true";
@@ -134,12 +151,8 @@ export default function HomePage() {
       []
     );
 
-    if (direct && direct.length > 0) {
-      return direct;
-    }
-
     const pool = [...latestNews, ...featuredArticles, ...mostReadNews];
-    const matched = pool.filter(a => {
+    const poolMatched = pool.filter(a => {
       if (!a) return false;
       const catName = String(a.categoryName || a.category || "").toLowerCase();
       const catSlugStr = String(a.categorySlug || a.categoryId || "").toLowerCase();
@@ -153,12 +166,14 @@ export default function HomePage() {
       );
     });
 
-    return Array.from(new Map(matched.map(a => [a.id, a])).values());
+    const combined = [...poolMatched, ...direct];
+    const unique = Array.from(new Map(combined.filter(a => a?.id).map(a => [a.id, a])).values());
+    return unique.sort((a, b) => parseTimestamp(b.createdAt) - parseTimestamp(a.createdAt));
   };
 
-  const [mostReadNews, setMostReadNews] = useState<Article[]>([]);
+  const [mostReadNews, setMostReadNews] = useState<Article[]>(() => initialSnap?.trendingNews || []);
   const [layout, setLayout] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !(initialSnap?.featuredArticles?.length || initialSnap?.latestNews?.length));
 
   // Platform statistics pulled dynamically from Snapshot OS
   const [platformStats, setPlatformStats] = useState({
@@ -193,7 +208,9 @@ export default function HomePage() {
   useEffect(() => {
     const loadSnapshot = async (forceRefresh = false) => {
       try {
-        setLoading(true);
+        if (forceRefresh || (!featuredArticles.length && !latestNews.length)) {
+          setLoading(true);
+        }
         const snapshot = await snapshotEngine.getHomepageSnapshot(language === "en" ? "en" : "ne", forceRefresh);
         const newsToUse = snapshot.latestNews || [];
         const baseCats = snapshot.categories && snapshot.categories.length > 0 ? snapshot.categories : CANONICAL_CATEGORIES;
@@ -307,36 +324,35 @@ export default function HomePage() {
             }
           });
 
-          // 2. Check snapshot sections if collected is empty
-          if (collected.length === 0) {
-            const sources = [
-              ...(snapshot.featuredArticles || []),
-              ...(newsToUse || []),
-              ...(snapshot.trendingNews || []),
-              ...(snapshot.videoNews || []),
-            ];
-            sources.forEach(article => {
-              if (!article) return;
-              const aNorm = normalizeArticleCategory(
-                article.categoryId || (article as any).categorySlug || (article as any).category || article.categoryName,
-                article.title,
-                article.content
-              );
-              const articleKeys = [
-                article.categoryId,
-                (article as any).categorySlug,
-                (article as any).category,
-                article.categoryName,
-                aNorm.categoryId,
-                aNorm.categorySlug,
-                aNorm.categoryName
-              ].map(normalizeKey).filter(Boolean);
+          // 2. Always check latest news and other sections to include latest articles
+          const sources = [
+            ...(newsToUse || []),
+            ...(snapshot.latestNews || []),
+            ...(snapshot.featuredArticles || []),
+            ...(snapshot.trendingNews || []),
+            ...(snapshot.videoNews || []),
+          ];
+          sources.forEach(article => {
+            if (!article) return;
+            const aNorm = normalizeArticleCategory(
+              article.categoryId || (article as any).categorySlug || (article as any).category || article.categoryName,
+              article.title,
+              article.content
+            );
+            const articleKeys = [
+              article.categoryId,
+              (article as any).categorySlug,
+              (article as any).category,
+              article.categoryName,
+              aNorm.categoryId,
+              aNorm.categorySlug,
+              aNorm.categoryName
+            ].map(normalizeKey).filter(Boolean);
 
-              if (articleKeys.some(k => keys.includes(k))) {
-                collected.push(article);
-              }
-            });
-          }
+            if (articleKeys.some(k => keys.includes(k))) {
+              collected.push(article);
+            }
+          });
 
           // Deduplicate within the category
           const uniqueMatch = Array.from(

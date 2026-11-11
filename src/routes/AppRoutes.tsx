@@ -551,6 +551,16 @@ export default function AppRoutes() {
             <Pages.StorePage />
           </RouteFeatureGuard>
         } />
+        <Route path="/store/product/:id" element={
+          <RouteFeatureGuard feature="commerce.store">
+            <Pages.ProductDetailsPage />
+          </RouteFeatureGuard>
+        } />
+        <Route path="/store/:id" element={
+          <RouteFeatureGuard feature="commerce.store">
+            <Pages.ProductDetailsPage />
+          </RouteFeatureGuard>
+        } />
         <Route path="/knowledge" element={
           <RouteFeatureGuard feature="knowledge.base">
             <Pages.KnowledgeBasePage />

@@ -170,19 +170,24 @@ export async function getHumanNepaliAudio(
   const language = options.language || "ne";
   const id = options.contentId || options.articleId;
   
-  // Use deterministic key if content ID is provided, otherwise hash text
+  // Use deterministic key with text length and version to guarantee updated audio on content change/restore
+  const textSample = (title + text).slice(0, 80).replace(/\s+/g, "");
+  const versionKey = `${options.contentVersion || "1"}_${textSample.length}`;
   const cacheKey = id 
-    ? computeDeterministicAudioKey(id, options.contentVersion || "1", language, voice)
+    ? computeDeterministicAudioKey(id, versionKey, language, voice)
     : `${voice}:${title.slice(0, 50)}:${text.slice(0, 300)}`;
 
   // 0. If pre-generated canonical R2 audioUrl is provided from Snapshot OS, use directly
+  // Skip non-existent assets.sanatanmarga.com mock assets to avoid 404s
   if (options.audioUrl && (options.audioUrl.startsWith("http://") || options.audioUrl.startsWith("https://") || options.audioUrl.startsWith("/uploads/"))) {
-    return {
-      audioUrl: options.audioUrl,
-      fromCache: true,
-      mimeType: "audio/wav",
-      cacheKey
-    };
+    if (!options.audioUrl.includes("assets.sanatanmarga.com/audio/tts/")) {
+      return {
+        audioUrl: options.audioUrl,
+        fromCache: true,
+        mimeType: "audio/wav",
+        cacheKey
+      };
+    }
   }
 
   // 1. Check in-memory Blob URL cache
@@ -240,8 +245,11 @@ export async function getHumanNepaliAudio(
     }
 
     const data = await res.json();
-    if (!data.success) {
-      throw new Error(data.error || "No audio data received");
+    if (data.fallbackToBrowser || !data.success) {
+      if (data.code === "QUOTA_EXCEEDED") {
+        ttsRateLimitCooldownUntil = Date.now() + 45000;
+      }
+      throw new Error(data.error || "Web Speech fallback requested");
     }
 
     // Direct R2 Cloudflare URL returned
@@ -299,7 +307,7 @@ export async function getHumanNepaliAudio(
 export async function pregenerateQueueAudio(
   items: Array<{ articleId: string; title: string; contentSummary: string; audioUrl?: string; contentVersion?: string | number }>,
   voice = "Aoede",
-  maxItems = 30
+  maxItems = 3
 ): Promise<void> {
   if (!items || items.length === 0) return;
   const targetItems = items.slice(0, maxItems);
@@ -322,8 +330,8 @@ export async function pregenerateQueueAudio(
           return;
         }
 
-        // If direct audioUrl exists on the item, warm it directly
-        if (item.audioUrl) {
+        // If direct audioUrl exists on the item and is not a known dead asset, warm it directly
+        if (item.audioUrl && !item.audioUrl.includes("assets.sanatanmarga.com/audio/tts/")) {
           try {
             const res = await fetch(item.audioUrl, { method: "GET" });
             if (res.ok) {

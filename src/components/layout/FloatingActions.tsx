@@ -225,7 +225,7 @@ export default function FloatingActions({
   if (!showDesktopTools) return null;
 
   return (
-    <div className="hidden lg:flex fixed right-6 bottom-8 z-40 flex-col items-end gap-2.5 pointer-events-auto">
+    <div className={`hidden lg:flex fixed right-6 ${mediaOS.playerState !== "hidden" ? "bottom-24" : "bottom-8"} z-50 flex-col items-end gap-2.5 pointer-events-auto transition-all duration-300`}>
       {/* Desktop Jump Deck Overlay */}
       <AnimatePresence>
         {showDesktopJumps && (
