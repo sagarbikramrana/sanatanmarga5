@@ -71,7 +71,24 @@ export function normalizeArticleCategory(
   if (cleanInput.includes("politic") || cleanInput.includes("राजनीति") || cleanInput.includes("संसद") || cleanInput.includes("चुनाव")) {
     return makeResult(CANONICAL_CATEGORIES[0]); // politics
   }
-  if (cleanInput.includes("econ") || cleanInput.includes("finance") || cleanInput.includes("arth") || cleanInput.includes("अर्थ") || cleanInput.includes("बजेट") || cleanInput.includes("बैंक")) {
+  if (
+    cleanInput.includes("econ") ||
+    cleanInput.includes("finance") ||
+    cleanInput.includes("arth") ||
+    cleanInput.includes("market") ||
+    cleanInput.includes("nepse") ||
+    cleanInput.includes("gold") ||
+    cleanInput.includes("silver") ||
+    cleanInput.includes("bullion") ||
+    cleanInput.includes("stock") ||
+    cleanInput.includes("अर्थ") ||
+    cleanInput.includes("बजेट") ||
+    cleanInput.includes("बैंक") ||
+    cleanInput.includes("नेप्से") ||
+    cleanInput.includes("सुन") ||
+    cleanInput.includes("चाँदी") ||
+    cleanInput.includes("सेयर")
+  ) {
     return makeResult(CANONICAL_CATEGORIES[4]); // economy
   }
   if (cleanInput.includes("relig") || cleanInput.includes("cultur") || cleanInput.includes("sanskar") || cleanInput.includes("धर्म") || cleanInput.includes("संस्कृति") || cleanInput.includes("पशुपति") || cleanInput.includes("मन्दिर") || cleanInput.includes("पञ्चाङ्ग")) {

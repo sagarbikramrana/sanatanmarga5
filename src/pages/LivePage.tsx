@@ -65,6 +65,9 @@ export default function LivePage() {
 
   useEffect(() => {
     loadData();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("sanatan-media-mutex", { detail: { source: "live-tv" } }));
+    }
   }, [videoId]);
 
   // Filtered videos by category if selected

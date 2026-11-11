@@ -85,7 +85,7 @@ export default function HomePage() {
     setIsHeroHidden(true);
     window.dispatchEvent(new CustomEvent("hero-visibility-changed"));
   };
-  
+
   const DEFAULT_CATEGORIES: Category[] = [
     { id: "politics", nameNepali: "राजनीति", nameEnglish: "Politics", slug: "politics", order: 1 },
     { id: "desh", nameNepali: "देश", nameEnglish: "National", slug: "desh", order: 2 },
@@ -105,8 +105,8 @@ export default function HomePage() {
     const normId = (norm.categoryId || "").toLowerCase();
 
     const direct = (
-      categoryArticles[slug] || 
-      categoryArticles[id] || 
+      categoryArticles[slug] ||
+      categoryArticles[id] ||
       categoryArticles[normSlug] ||
       categoryArticles[normId] ||
       []
@@ -164,7 +164,7 @@ export default function HomePage() {
       setDocWithQueue(doc(db, "settings", "homepageLayout"), {
         sections: newLayout,
         updatedAt: new Date().toISOString()
-      }, { merge: true }).catch(() => {});
+      }, { merge: true }).catch(() => { });
     }
   };
 
@@ -242,10 +242,10 @@ export default function HomePage() {
           if (cat.isHidden) return;
           const s = normalizeKey(cat.slug || cat.id);
           const n = normalizeKey(cat.nameNepali || cat.name || cat.nameEnglish);
-          
+
           const isRandomId = /^[a-z0-9]{15,}$/.test(s);
           const hasRealName = n && !/^[a-z0-9]{15,}$/.test(n);
-          
+
           if (
             !s ||
             s === "समाचार" ||
@@ -368,7 +368,7 @@ export default function HomePage() {
           (art) => Boolean((art as any).audioUrl || (art as any).tts?.audioUrl)
         );
         if (articlesWithAudio.length > 0) {
-          preloadAllRecentNewsAudio(articlesWithAudio).catch(() => {});
+          preloadAllRecentNewsAudio(articlesWithAudio).catch(() => { });
         }
       } catch (err) {
         console.warn("Snapshot load error, activating failover dataset:", err);
@@ -383,12 +383,12 @@ export default function HomePage() {
           setMostReadNews(fallbackTrending);
           setVideoNews(fallbackSnap.videoNews || []);
           setCategoryArticles(fallbackSnap.categoryArticles || {});
-          
+
           const fallbackWithAudio = [...fallbackFeatured, ...fallbackLatest, ...fallbackTrending].filter(
             (art) => Boolean((art as any).audioUrl || (art as any).tts?.audioUrl)
           );
           if (fallbackWithAudio.length > 0) {
-            preloadAllRecentNewsAudio(fallbackWithAudio).catch(() => {});
+            preloadAllRecentNewsAudio(fallbackWithAudio).catch(() => { });
           }
         } catch (failoverErr) {
           console.warn("Failover snapshot also failed:", failoverErr);
@@ -399,7 +399,7 @@ export default function HomePage() {
     };
 
     loadSnapshot();
-    offlineQueue.autoSync().catch(() => {});
+    offlineQueue.autoSync().catch(() => { });
 
     const handleRebuilt = () => {
       loadSnapshot(true);
@@ -407,9 +407,9 @@ export default function HomePage() {
 
     const unsubscribeEventBus = contentEventBus?.subscribe
       ? contentEventBus.subscribe(() => {
-          loadSnapshot(true);
-        })
-      : () => {};
+        loadSnapshot(true);
+      })
+      : () => { };
 
     window.addEventListener("snapshot-rebuilt", handleRebuilt);
     window.addEventListener("content-mutated", handleRebuilt);
@@ -439,10 +439,10 @@ export default function HomePage() {
     else if (mostReadTab === "week") startDate.setDate(now.getDate() - 7);
     else if (mostReadTab === "year") startDate.setFullYear(now.getFullYear() - 1);
 
-    const organicArticles = mostReadNews.filter(a => 
-      !(a as any).isAd && 
-      !(a as any).isSponsored && 
-      !(a as any).position && 
+    const organicArticles = mostReadNews.filter(a =>
+      !(a as any).isAd &&
+      !(a as any).isSponsored &&
+      !(a as any).position &&
       (!(a as any).linkUrl || (a.content && a.content.length > 20))
     );
 
@@ -463,7 +463,7 @@ export default function HomePage() {
 
   const getRenderableLayout = () => {
     if (!layout) return null;
-    
+
     const manuallyAddedCategoryIds = layout.filter(s => s.type === 'category').map(s => s.categoryId);
     const activeCategories = categories.filter(cat => {
       if (manuallyAddedCategoryIds.includes(cat.slug) || manuallyAddedCategoryIds.includes(cat.id)) return false;
@@ -478,14 +478,14 @@ export default function HomePage() {
     }));
 
     const firstCatIndex = layout.findIndex(s => s.type === 'category');
-    
+
     let finalLayout = [...layout];
     if (firstCatIndex !== -1) {
       finalLayout.splice(firstCatIndex, 0, ...autoCategorySections);
     } else {
       finalLayout = [...finalLayout, ...autoCategorySections];
     }
-    
+
     return finalLayout;
   };
 
@@ -550,15 +550,14 @@ export default function HomePage() {
           <TrendingUp size={18} />
         </Link>
       </div>
-      
+
       <div className="flex bg-muted-area p-1 rounded-xl">
         {(["day", "week", "year"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setMostReadTab(tab)}
-            className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
-              mostReadTab === tab ? "bg-card text-primary shadow-sm" : "text-muted-text hover:text-foreground"
-            }`}
+            className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${mostReadTab === tab ? "bg-card text-primary shadow-sm" : "text-muted-text hover:text-foreground"
+              }`}
           >
             {tab === "day" ? "आज" : tab === "week" ? "यो हप्ता" : "यो वर्ष"}
           </button>
@@ -611,12 +610,12 @@ export default function HomePage() {
   if (loading && !layout) return <HomeSkeleton />;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="min-h-screen flex flex-col bg-[var(--background)] transition-colors duration-300"
     >
-      <SEOHead 
+      <SEOHead
         title="सत्य, तथ्य र निष्पक्ष - नेपालको अग्रणी डिजिटल समाचार तथा ज्ञान सञ्जाल"
         description="सनातन मार्ग - नेपालको भरपर्दो डिजिटल मिडिया तथा सांस्कृतिक पोर्टल। ताजा राष्ट्रिय-अन्तर्राष्ट्रिय समाचार, राजनीति, नेपाल हब पञ्चाङ्ग पात्रो, बजार भाउ, र सरस्वती ज्ञान सञ्जाल।"
         url="/"
@@ -629,7 +628,7 @@ export default function HomePage() {
         }}
       />
       <Header />
-      
+
       <main className="flex-grow">
         {/* Cinematic Onboarding Experience (Grouped under !isHeroHidden) */}
         {!isHeroHidden && heroConfig.enabled ? (
@@ -651,8 +650,8 @@ export default function HomePage() {
                       {language === 'en' ? 'OUR SOLEMN COMMITMENT' : 'हाम्रो प्रतिबद्धता'}
                     </span>
                     <h2 className="text-2xl lg:text-3xl font-black text-card-foreground tracking-tight leading-tight">
-                      {language === 'en' 
-                        ? 'Preserving Knowledge, Empowering Society, and Uniting Nepal Digitally.' 
+                      {language === 'en'
+                        ? 'Preserving Knowledge, Empowering Society, and Uniting Nepal Digitally.'
                         : 'ज्ञानको संरक्षण, समाजको सशक्तिकरण, र नेपालको डिजिटल एकता।'}
                     </h2>
                     <p className="text-xs sm:text-sm font-bold text-muted-text leading-relaxed">
@@ -694,173 +693,173 @@ export default function HomePage() {
             {/* 3. Ecosystem Architecture (The Four Pillars) */}
             <FeatureGate feature="homepage.ecosystem">
               <section id="homepage-intro" className="py-8 sm:py-10 bg-background relative z-20 border-b border-border-theme/40">
-              <div className="container-custom flex flex-col gap-8 px-4">
-                <div className="flex flex-col items-center text-center gap-1">
-                  <span className="text-xxs font-black text-primary tracking-[0.25em] uppercase">{language === 'en' ? 'Ecosystem Architecture' : 'संरचनात्मक प्रारूप'}</span>
-                  <h2 className="text-2xl lg:text-3xl font-black text-card-foreground tracking-tight">
-                    {language === 'en' ? 'The Four Pillars of Sanatan Marga' : 'सनातन मार्गका चार स्तम्भहरू'}
-                  </h2>
-                  <div className="w-12 h-0.5 bg-primary mt-1" />
+                <div className="container-custom flex flex-col gap-8 px-4">
+                  <div className="flex flex-col items-center text-center gap-1">
+                    <span className="text-xxs font-black text-primary tracking-[0.25em] uppercase">{language === 'en' ? 'Ecosystem Architecture' : 'संरचनात्मक प्रारूप'}</span>
+                    <h2 className="text-2xl lg:text-3xl font-black text-card-foreground tracking-tight">
+                      {language === 'en' ? 'The Four Pillars of Sanatan Marga' : 'सनातन मार्गका चार स्तम्भहरू'}
+                    </h2>
+                    <div className="w-12 h-0.5 bg-primary mt-1" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Card 1: Nepal Hub Intelligence */}
+                    <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
+                      <div className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                        <Compass size={18} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <h3 className="text-sm font-black text-card-foreground">
+                          {language === 'en' ? 'Nepal Hub Intelligence' : 'नेपाल हब इन्टेलिजेन्स'}
+                        </h3>
+                        <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
+                          <li>{language === 'en' ? 'District Intelligence' : '७७ जिल्लाको प्रत्यक्ष विवरण'}</li>
+                          <li>{language === 'en' ? 'Development Tracking' : 'विकास तथा बजार ट्र्याकिङ'}</li>
+                          <li>{language === 'en' ? 'Knowledge Graph Integration' : 'भू-सांस्कृतिक ज्ञान प्रणाली'}</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Saraswati Knowledge OS */}
+                    <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
+                      <div className="w-10 h-10 bg-sacred/10 text-sacred rounded-xl flex items-center justify-center shrink-0">
+                        <BookOpen size={18} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <h3 className="text-sm font-black text-card-foreground">
+                          {language === 'en' ? 'Saraswati Knowledge OS' : 'सरस्वती ज्ञान केन्द्र'}
+                        </h3>
+                        <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
+                          <li>{language === 'en' ? 'Scriptures & Granthas' : 'वैदिक शास्त्र तथा ग्रन्थहरू'}</li>
+                          <li>{language === 'en' ? 'Authentic Research' : 'प्रमाणिक अनुसन्धान र भाष्य'}</li>
+                          <li>{language === 'en' ? 'Translations & Digital Library' : 'द्विभाषिक अनुवाद र पुस्तकालय'}</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Chautari Community */}
+                    <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
+                      <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
+                        <Users size={18} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <h3 className="text-sm font-black text-card-foreground">
+                          {language === 'en' ? 'Chautari Community' : 'चौतारी समुदाय'}
+                        </h3>
+                        <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
+                          <li>{language === 'en' ? 'Forums & Discussions' : 'विचार, विमर्श र बौद्धिक छलफल'}</li>
+                          <li>{language === 'en' ? 'Public Participation' : 'नागरिक सहभागिता'}</li>
+                          <li>{language === 'en' ? 'Reputation & Verified Badges' : 'योगदान अंक र प्रमाणीकरण'}</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Media OS */}
+                    <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
+                      <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center shrink-0">
+                        <Newspaper size={18} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <h3 className="text-sm font-black text-card-foreground">
+                          {language === 'en' ? 'Media OS' : 'मिडिया ओएस'}
+                        </h3>
+                        <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
+                          <li>{language === 'en' ? 'Live Newsroom' : 'प्रत्यक्ष न्युजरुम ब्रिफिङ'}</li>
+                          <li>{language === 'en' ? 'Responsible Journalism' : 'तथ्यपरक र जिम्मेवार पत्रकारिता'}</li>
+                          <li>{language === 'en' ? 'Storytelling & Multimedia' : 'भिडियो तथा मल्टिमिडिया कथा'}</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2nd Live Data Block: Under Four Pillars (Ecosystem Architecture) - Real-time statistics/counters */}
+                  <div className="mt-4 pt-8 border-t border-border-theme/40">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
+                          {language === 'en' ? platformStats.articlesCount.toLocaleString('en-US') : platformStats.articlesCount.toLocaleString('ne-NP')}
+                        </span>
+                        <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
+                          {language === 'en' ? 'Published Articles' : 'प्रकाशित लेखहरू'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
+                          {language === 'en' ? platformStats.membersCount.toLocaleString('en-US') : platformStats.membersCount.toLocaleString('ne-NP')}
+                        </span>
+                        <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
+                          {language === 'en' ? 'Active Members' : 'सक्रिय सदस्यहरू'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
+                          {language === 'en' ? platformStats.districtsCount.toLocaleString('en-US') : platformStats.districtsCount.toLocaleString('ne-NP')}
+                        </span>
+                        <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
+                          {language === 'en' ? 'Covered Districts' : 'समेटिएका जिल्लाहरू'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
+                          {language === 'en' ? platformStats.resourcesCount.toLocaleString('en-US') : platformStats.resourcesCount.toLocaleString('ne-NP')}
+                        </span>
+                        <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
+                          {language === 'en' ? 'Knowledge Resources' : 'ज्ञान स्रोतहरू'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
+                          {language === 'en' ? platformStats.discussionsCount.toLocaleString('en-US') : platformStats.discussionsCount.toLocaleString('ne-NP')}
+                        </span>
+                        <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
+                          {language === 'en' ? 'Community Discussions' : 'समुदाय छलफल'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              </section>
+            </FeatureGate>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Card 1: Nepal Hub Intelligence */}
-                  <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
-                    <div className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
-                      <Compass size={18} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <h3 className="text-sm font-black text-card-foreground">
-                        {language === 'en' ? 'Nepal Hub Intelligence' : 'नेपाल हब इन्टेलिजेन्स'}
-                      </h3>
-                      <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
-                        <li>{language === 'en' ? 'District Intelligence' : '७७ जिल्लाको प्रत्यक्ष विवरण'}</li>
-                        <li>{language === 'en' ? 'Development Tracking' : 'विकास तथा बजार ट्र्याकिङ'}</li>
-                        <li>{language === 'en' ? 'Knowledge Graph Integration' : 'भू-सांस्कृतिक ज्ञान प्रणाली'}</li>
-                      </ul>
-                    </div>
-                  </div>
+            {/* 4. Category Grid (Explore Categories) */}
+            <FeatureGate feature="homepage.ecosystem">
+              <SectionErrorBoundary sectionName="category-nav">
+                <CategoryNavGrid categories={categories} />
+              </SectionErrorBoundary>
+            </FeatureGate>
 
-                  {/* Card 2: Saraswati Knowledge OS */}
-                  <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
-                    <div className="w-10 h-10 bg-sacred/10 text-sacred rounded-xl flex items-center justify-center shrink-0">
-                      <BookOpen size={18} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <h3 className="text-sm font-black text-card-foreground">
-                        {language === 'en' ? 'Saraswati Knowledge OS' : 'सरस्वती ज्ञान केन्द्र'}
-                      </h3>
-                      <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
-                        <li>{language === 'en' ? 'Scriptures & Granthas' : 'वैदिक शास्त्र तथा ग्रन्थहरू'}</li>
-                        <li>{language === 'en' ? 'Authentic Research' : 'प्रमाणिक अनुसन्धान र भाष्य'}</li>
-                        <li>{language === 'en' ? 'Translations & Digital Library' : 'द्विभाषिक अनुवाद र पुस्तकालय'}</li>
-                      </ul>
-                    </div>
-                  </div>
+            {/* 5. Trending and Editor Picks */}
+            <FeatureGate feature="homepage.trendingStories">
+              <SectionErrorBoundary sectionName="featured-stories">
+                <FeaturedStoriesGrid
+                  latestNews={latestNews}
+                  trendingNews={mostReadNews}
+                  onShare={handleShareClick}
+                />
+              </SectionErrorBoundary>
+            </FeatureGate>
 
-                  {/* Card 3: Chautari Community */}
-                  <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
-                    <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
-                      <Users size={18} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <h3 className="text-sm font-black text-card-foreground">
-                        {language === 'en' ? 'Chautari Community' : 'चौतारी समुदाय'}
-                      </h3>
-                      <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
-                        <li>{language === 'en' ? 'Forums & Discussions' : 'विचार, विमर्श र बौद्धिक छलफल'}</li>
-                        <li>{language === 'en' ? 'Public Participation' : 'नागरिक सहभागिता'}</li>
-                        <li>{language === 'en' ? 'Reputation & Verified Badges' : 'योगदान अंक र प्रमाणीकरण'}</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Card 4: Media OS */}
-                  <div className="bg-card p-6 rounded-2xl border border-border-theme flex flex-col gap-4 shadow-xs hover:shadow-md transition-all duration-300">
-                    <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center shrink-0">
-                      <Newspaper size={18} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <h3 className="text-sm font-black text-card-foreground">
-                        {language === 'en' ? 'Media OS' : 'मिडिया ओएस'}
-                      </h3>
-                      <ul className="text-[11px] font-bold text-muted-text flex flex-col gap-1 list-disc list-inside">
-                        <li>{language === 'en' ? 'Live Newsroom' : 'प्रत्यक्ष न्युजरुम ब्रिफिङ'}</li>
-                        <li>{language === 'en' ? 'Responsible Journalism' : 'तथ्यपरक र जिम्मेवार पत्रकारिता'}</li>
-                        <li>{language === 'en' ? 'Storytelling & Multimedia' : 'भिडियो तथा मल्टिमिडिया कथा'}</li>
-                      </ul>
-                    </div>
-                  </div>
+            {/* 6. नेपाल खोज सञ्जाल (Explore Nepal OS Showcase) */}
+            <FeatureGate feature="homepage.nepalMap">
+              <section id="explore-nepal-section" className="py-8 sm:py-10 bg-muted-area/5 border-t border-b border-border-theme/60 relative z-20">
+                <div className="container-custom">
+                  <SectionErrorBoundary sectionName="nepal-map">
+                    <NepalInteractiveMap />
+                  </SectionErrorBoundary>
                 </div>
+              </section>
+            </FeatureGate>
 
-                {/* 2nd Live Data Block: Under Four Pillars (Ecosystem Architecture) - Real-time statistics/counters */}
-                <div className="mt-4 pt-8 border-t border-border-theme/40">
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
-                        {language === 'en' ? platformStats.articlesCount.toLocaleString('en-US') : platformStats.articlesCount.toLocaleString('ne-NP')}
-                      </span>
-                      <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
-                        {language === 'en' ? 'Published Articles' : 'प्रकाशित लेखहरू'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
-                        {language === 'en' ? platformStats.membersCount.toLocaleString('en-US') : platformStats.membersCount.toLocaleString('ne-NP')}
-                      </span>
-                      <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
-                        {language === 'en' ? 'Active Members' : 'सक्रिय सदस्यहरू'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
-                        {language === 'en' ? platformStats.districtsCount.toLocaleString('en-US') : platformStats.districtsCount.toLocaleString('ne-NP')}
-                      </span>
-                      <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
-                        {language === 'en' ? 'Covered Districts' : 'समेटिएका जिल्लाहरू'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
-                        {language === 'en' ? platformStats.resourcesCount.toLocaleString('en-US') : platformStats.resourcesCount.toLocaleString('ne-NP')}
-                      </span>
-                      <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
-                        {language === 'en' ? 'Knowledge Resources' : 'ज्ञान स्रोतहरू'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-2xl lg:text-3xl font-black text-primary font-mono">
-                        {language === 'en' ? platformStats.discussionsCount.toLocaleString('en-US') : platformStats.discussionsCount.toLocaleString('ne-NP')}
-                      </span>
-                      <span className="text-[10px] font-black text-muted-text uppercase tracking-wider">
-                        {language === 'en' ? 'Community Discussions' : 'समुदाय छलफल'}
-                      </span>
-                    </div>
-                  </div>
+            {/* 7. सरस्वती ज्ञान विज्ञान मञ्च (Saraswati Knowledge Hub OS Showcase) */}
+            <FeatureGate feature="homepage.sgisShowcase">
+              <section id="saraswati-knowledge-section" className="py-8 sm:py-10 bg-background relative z-20">
+                <div className="container-custom space-y-8">
+                  <SectionErrorBoundary sectionName="saraswati-showcase">
+                    <SaraswatiKnowledgeShowcase />
+                  </SectionErrorBoundary>
                 </div>
-              </div>
-            </section>
-          </FeatureGate>
-
-          {/* 4. Category Grid (Explore Categories) */}
-          <FeatureGate feature="homepage.ecosystem">
-            <SectionErrorBoundary sectionName="category-nav">
-              <CategoryNavGrid categories={categories} />
-            </SectionErrorBoundary>
-          </FeatureGate>
-
-          {/* 5. Trending and Editor Picks */}
-          <FeatureGate feature="homepage.trendingStories">
-            <SectionErrorBoundary sectionName="featured-stories">
-              <FeaturedStoriesGrid
-                latestNews={latestNews}
-                trendingNews={mostReadNews}
-                onShare={handleShareClick}
-              />
-            </SectionErrorBoundary>
-          </FeatureGate>
-
-          {/* 6. नेपाल खोज सञ्जाल (Explore Nepal OS Showcase) */}
-          <FeatureGate feature="homepage.nepalMap">
-            <section id="explore-nepal-section" className="py-8 sm:py-10 bg-muted-area/5 border-t border-b border-border-theme/60 relative z-20">
-              <div className="container-custom">
-                <SectionErrorBoundary sectionName="nepal-map">
-                  <NepalInteractiveMap />
-                </SectionErrorBoundary>
-              </div>
-            </section>
-          </FeatureGate>
-
-          {/* 7. सरस्वती ज्ञान विज्ञान मञ्च (Saraswati Knowledge Hub OS Showcase) */}
-          <FeatureGate feature="homepage.sgisShowcase">
-            <section id="saraswati-knowledge-section" className="py-8 sm:py-10 bg-background relative z-20">
-              <div className="container-custom space-y-8">
-                <SectionErrorBoundary sectionName="saraswati-showcase">
-                  <SaraswatiKnowledgeShowcase />
-                </SectionErrorBoundary>
-              </div>
-            </section>
-          </FeatureGate>
+              </section>
+            </FeatureGate>
           </>
         ) : null}
 
@@ -950,7 +949,7 @@ export default function HomePage() {
                     </motion.div>
 
                     {/* Push Notification Prompt */}
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       whileInView={{ opacity: 1, scale: 1 }}
                       viewport={{ once: true }}
@@ -968,21 +967,21 @@ export default function HomePage() {
 
                     {/* Dynamic Categories (First 2) */}
                     {categories.slice(0, 2).map((cat, idx) => (
-                      <motion.div 
-                        key={cat.id || cat.slug || `cat_top_${idx}`} 
+                      <motion.div
+                        key={cat.id || cat.slug || `cat_top_${idx}`}
                         id={`category-${cat.slug}`}
                         initial={{ opacity: 0, y: 40 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                       >
-                        <CategoryBlock 
-                          category={cat} 
-                          articles={getCategoryArticles(cat.slug, cat.id)} 
+                        <CategoryBlock
+                          category={cat}
+                          articles={getCategoryArticles(cat.slug, cat.id)}
                           onShare={handleShareClick}
                         />
                       </motion.div>
                     ))}
-                    
+
                     {/* Mid-page Ad Banner */}
                     <AdBanner position="homepage_mid" className="my-6" />
                   </div>
@@ -1012,17 +1011,17 @@ export default function HomePage() {
               <div className="container-custom">
                 <div className="flex flex-col gap-10">
                   {categories.slice(2).map((cat, index) => (
-                    <motion.div 
-                      key={cat.id || cat.slug || `cat_rem_${index}`} 
+                    <motion.div
+                      key={cat.id || cat.slug || `cat_rem_${index}`}
                       id={`category-${cat.slug}`}
                       initial={{ opacity: 0, y: 50 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: (index % 3) * 0.1 }}
                     >
-                      <CategoryBlock 
-                        category={cat} 
-                        articles={getCategoryArticles(cat.slug, cat.id)} 
+                      <CategoryBlock
+                        category={cat}
+                        articles={getCategoryArticles(cat.slug, cat.id)}
                         onShare={handleShareClick}
                       />
                     </motion.div>
@@ -1042,8 +1041,8 @@ export default function HomePage() {
       </main>
 
       <Footer />
-      
-      <CreatePostModal 
+
+      <CreatePostModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         initialData={selectedArticleToShare ? {
@@ -1055,12 +1054,12 @@ export default function HomePage() {
         } : undefined}
       />
 
-      <FloatingActions 
-        categories={categories.map(c => ({ 
-          id: c.id, 
-          name: language === 'en' ? (c.nameEnglish || c.nameNepali) : (c.nameNepali || c.nameEnglish), 
-          slug: c.slug 
-        }))} 
+      <FloatingActions
+        categories={categories.map(c => ({
+          id: c.id,
+          name: language === 'en' ? (c.nameEnglish || c.nameNepali) : (c.nameNepali || c.nameEnglish),
+          slug: c.slug
+        }))}
       />
     </motion.div>
   );

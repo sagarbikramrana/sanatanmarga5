@@ -1116,6 +1116,82 @@ async function syncGatewayMutationToServer(
   }
 }
 
+export async function flushLocalStorageToServerAndR2(): Promise<void> {
+  if (typeof window === "undefined" || !auth.currentUser) return;
+  try {
+    const idToken = await auth.currentUser.getIdToken().catch(() => undefined);
+    if (!idToken) return;
+
+    const actions: Array<{ type: string; collection: string; docId: string; data: any }> = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith("sg_local_") || k.startsWith("sg_local_col_")) continue;
+      // Format: sg_local_${col}_${docId}
+      const rest = k.slice("sg_local_".length);
+      const sepIdx = rest.indexOf("_");
+      if (sepIdx <= 0) continue;
+      const col = rest.slice(0, sepIdx);
+      const docId = rest.slice(sepIdx + 1);
+      if (!col || !docId || col === "pwa" || col === "pwa_telemetry") continue;
+
+      try {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (parsed && !parsed._syncedToR2) {
+          actions.push({
+            type: "UPDATE",
+            collection: col,
+            docId,
+            data: parsed,
+          });
+        }
+      } catch {}
+    }
+
+    if (actions.length === 0) return;
+
+    const res = await fetch("/api/admin/sync-pending-posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ actions }),
+    });
+
+    if (res.ok) {
+      for (const act of actions) {
+        const k = `sg_local_${act.collection}_${act.docId}`;
+        try {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            parsed._syncedToR2 = true;
+            localStorage.setItem(k, JSON.stringify(parsed));
+          }
+        } catch {}
+      }
+      window.dispatchEvent(new CustomEvent("snapshot-rebuilt", { detail: { flushedCount: actions.length } }));
+    }
+  } catch (err) {
+    console.warn("[Gateway R2 Flush] Warning flushing localStorage to R2:", err);
+  }
+}
+
+if (typeof window !== "undefined") {
+  try {
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        setTimeout(() => {
+          flushLocalStorageToServerAndR2().catch(() => {});
+        }, 1500);
+      }
+    });
+  } catch {}
+}
+
 /**
  * Central Gateway getDocs with multi-tier cache, backup fallback, single-flight locking, and telemetry.
  */

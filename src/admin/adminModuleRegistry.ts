@@ -207,6 +207,23 @@ export const ADMIN_MODULES: AdminModule[] = [
     legacyAliases: ["/admin/operations", "/admin/platform-health", "/admin/mission-control"]
   },
   {
+    moduleId: "command.snapshot_center",
+    label: "Snapshot Center",
+    localizedLabel: { ne: "स्न्यापसट सेन्टर", en: "Snapshot Center" },
+    description: "Centralized snapshot publishing, module generation diffs, dry-run validation, and 1-click rollback",
+    localizedDescription: { ne: "केन्द्रीय स्न्यापसट प्रकाशन, संस्करण तुलना र रोलब्याक", en: "Centralized snapshot publishing and rollback" },
+    domain: "COMMAND_CENTER",
+    route: "/admin/snapshots",
+    icon: "Layers",
+    requiredPermissions: ["news.publish"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "chief_editor", "senior_editor", "editor"],
+    tenantAware: true,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["snapshot", "snapshots", "publish", "version", "rollback", "manifest", "r2"],
+    status: "ACTIVE",
+    priority: 98
+  },
+  {
     moduleId: "command.review_inbox",
     label: "Review Inbox",
     localizedLabel: { ne: "समीक्षा इनबक्स", en: "Review Inbox" },
@@ -263,6 +280,24 @@ export const ADMIN_MODULES: AdminModule[] = [
     priority: 85
   },
   {
+    moduleId: "editorial.verification",
+    label: "Source & Fact Verification",
+    localizedLabel: { ne: "स्रोत तथा तथ्य प्रमाणीकरण", en: "Source & Fact Verification" },
+    description: "No Source = No Story gate, claim-to-source verification, and fact-checker sign-off",
+    localizedDescription: { ne: "समाचार स्रोत दर्ता, दाबी जाँच र तथ्य प्रमाणीकरण", en: "Source registry and fact-check verification" },
+    domain: "EDITORIAL",
+    route: "/admin/verification",
+    icon: "CheckCircle2",
+    featureKey: "core.news",
+    requiredPermissions: ["news.edit"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "chief_editor", "senior_editor", "editor", "fact_checker"],
+    tenantAware: true,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["source", "fact check", "verification", "claims", "evidence", "provenance"],
+    status: "ACTIVE",
+    priority: 82
+  },
+  {
     moduleId: "editorial.categories",
     label: "Categories Taxonomy",
     localizedLabel: { ne: "विधा तथा श्रेणी", en: "Categories Taxonomy" },
@@ -316,6 +351,24 @@ export const ADMIN_MODULES: AdminModule[] = [
 
   // 3. MEDIA
   {
+    moduleId: "media.live_tv",
+    label: "MediaOS / Live TV",
+    localizedLabel: { ne: "प्रत्यक्ष प्रसारण (Live TV)", en: "MediaOS / Live TV" },
+    description: "Live TV broadcast streams, fallback stream health, VOD episodes, and schedule",
+    localizedDescription: { ne: "प्रत्यक्ष टिभी प्रसारण, कार्यक्रम तालिका र भिडियो व्यवस्थापन", en: "Live TV streams, schedules, and VOD" },
+    domain: "MEDIA",
+    route: "/admin/live",
+    icon: "Tv",
+    featureKey: "media.live",
+    requiredPermissions: ["media.upload"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "senior_editor", "media_producer", "editor"],
+    tenantAware: false,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["live", "tv", "video", "stream", "broadcast", "mediaos"],
+    status: "ACTIVE",
+    priority: 95
+  },
+  {
     moduleId: "media.library",
     label: "Media Library & Assets",
     localizedLabel: { ne: "मिडिया लाइब्रेरी", en: "Media Library & Assets" },
@@ -352,6 +405,24 @@ export const ADMIN_MODULES: AdminModule[] = [
     priority: 85
   },
   {
+    moduleId: "media.listen",
+    label: "ListenOS / Podcasts & Audio",
+    localizedLabel: { ne: "पोडकास्ट तथा श्रव्य (ListenOS)", en: "ListenOS / Podcasts & Audio" },
+    description: "Podcast shows, episodes, chapter markers, transcripts, and article narration",
+    localizedDescription: { ne: "पोडकास्ट शृङ्खला, एपिसोड, अध्याय र ट्रान्सक्रिप्ट व्यवस्थापन", en: "Podcast shows, episodes, and transcripts" },
+    domain: "MEDIA",
+    route: "/admin/listen",
+    icon: "Headphones",
+    featureKey: "media.listenos",
+    requiredPermissions: ["radio.manage"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "senior_editor", "media_producer", "radio_producer", "editor"],
+    tenantAware: false,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["listen", "listenos", "podcast", "podcasts", "episodes", "audio", "transcripts"],
+    status: "ACTIVE",
+    priority: 82
+  },
+  {
     moduleId: "media.sponsor_audio",
     label: "Sponsor Audio OS",
     localizedLabel: { ne: "प्रायोजक अडियो व्यवस्थापन", en: "Sponsor Audio OS" },
@@ -372,20 +443,38 @@ export const ADMIN_MODULES: AdminModule[] = [
 
   // 4. KNOWLEDGE & CIVILIZATION
   {
+    moduleId: "knowledge.sgis",
+    label: "SGIS / Grantha Archive",
+    localizedLabel: { ne: "सनातन ग्रन्थ अभिलेख (SGIS)", en: "SGIS / Grantha Archive" },
+    description: "Sanatan Grantha & Intelligence System: manuscripts, verse citations, SHA-256 provenance, and scholarly review",
+    localizedDescription: { ne: "पाण्डुलिपि, श्लोक उद्धरण, ह्यास प्रमाणीकरण र विद्वान समीक्षा", en: "Manuscripts, verse citations, and scholarly review" },
+    domain: "KNOWLEDGE",
+    route: "/admin/sgis",
+    icon: "BookOpen",
+    featureKey: "knowledge.base",
+    requiredPermissions: ["news.edit"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "senior_editor", "sgis_scholar", "manuscript_curator", "researcher", "editor"],
+    tenantAware: false,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["sgis", "grantha", "manuscript", "sanskrit", "shloka", "citation"],
+    status: "ACTIVE",
+    priority: 95
+  },
+  {
     moduleId: "knowledge.base",
-    label: "Sanatan GyanKosh",
-    localizedLabel: { ne: "सनातन ज्ञानकोष", en: "Sanatan GyanKosh" },
-    description: "Vedic knowledge graph, philosophical entities, and cultural heritage",
-    localizedDescription: { ne: "दार्शनिक तथा सांस्कृतिक ज्ञानकोष नोडहरू", en: "Knowledge base and Vedic entities" },
+    label: "Knowledge Graph & Citations",
+    localizedLabel: { ne: "ज्ञान ग्राफ तथा उद्धरण", en: "Knowledge Graph & Citations" },
+    description: "Vedic knowledge graph, philosophical entities, cross-module citations, and cultural heritage",
+    localizedDescription: { ne: "दार्शनिक ज्ञान ग्राफ, उद्धरण र सांस्कृतिक सम्पदा नोडहरू", en: "Knowledge graph entities and citation registry" },
     domain: "KNOWLEDGE",
     route: "/admin/knowledge",
     icon: "BookOpen",
     featureKey: "knowledge.base",
     requiredPermissions: ["news.edit"],
-    allowedRoles: ["super_admin", "admin", "editorial_admin", "senior_editor", "researcher"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "senior_editor", "sgis_scholar", "researcher"],
     tenantAware: false,
     navigationVisibility: "STAFF_ONLY",
-    searchKeywords: ["knowledge", "gyankosh", "vedic", "entities", "philosophy"],
+    searchKeywords: ["knowledge", "gyankosh", "vedic", "entities", "philosophy", "citations"],
     status: "ACTIVE",
     priority: 90,
     legacyAliases: ["/admin/knowledge-os", "/admin/festivals"]
@@ -522,6 +611,24 @@ export const ADMIN_MODULES: AdminModule[] = [
     legacyAliases: ["/admin/video-ads"]
   },
   {
+    moduleId: "academy.competency",
+    label: "Competency, Assessments & Certificates",
+    localizedLabel: { ne: "दक्षता, मूल्याङ्कन र प्रमाणपत्र", en: "Competency, Assessments & Certificates" },
+    description: "Competency tracks, grading rubrics, certificate issuance/revocation, and verification logs",
+    localizedDescription: { ne: "दक्षता मूल्याङ्कन, रुब्रिक र प्रमाणपत्र प्रमाणीकरण व्यवस्थापन", en: "Competency rubrics and certificate management" },
+    domain: "ACADEMY",
+    route: "/admin/training",
+    icon: "ShieldCheck",
+    featureKey: "training.academy",
+    requiredPermissions: ["news.edit"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "acharya", "editor"],
+    tenantAware: false,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["competency", "training", "certificates", "assessments", "rubrics", "gurukul"],
+    status: "ACTIVE",
+    priority: 88
+  },
+  {
     moduleId: "academy.models",
     label: "Creative Models & Talent",
     localizedLabel: { ne: "मोडेल तथा प्रतिभा हब", en: "Creative Models & Talent" },
@@ -540,6 +647,24 @@ export const ADMIN_MODULES: AdminModule[] = [
   },
 
   // 7. EVENTS & COMMERCE
+  {
+    moduleId: "events.panchang",
+    label: "Panchang, Festivals & Events",
+    localizedLabel: { ne: "पञ्चाङ्ग, पर्व तथा पात्रो", en: "Panchang, Festivals & Events" },
+    description: "Daily Bikram Sambat / AD Panchang (Tithi, Nakshatra, Yoga, Karana), auspicious timings, and festival guides",
+    localizedDescription: { ne: "दैनिक पञ्चाङ्ग, तिथि, नक्षत्र, शुभ साइत र पर्व व्यवस्थापन", en: "Daily BS/AD Panchang and festival calendar" },
+    domain: "EVENTS_COMMERCE",
+    route: "/admin/panchang",
+    icon: "Calendar",
+    featureKey: "knowledge.festivals",
+    requiredPermissions: ["events.edit"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "senior_editor", "acharya", "editor"],
+    tenantAware: false,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["panchang", "tithi", "nakshatra", "bikram sambat", "festivals", "calendar"],
+    status: "ACTIVE",
+    priority: 95
+  },
   {
     moduleId: "events.manager",
     label: "Cultural Events & Festivals",
@@ -631,6 +756,25 @@ export const ADMIN_MODULES: AdminModule[] = [
     searchKeywords: ["ads", "advertising", "banners", "campaigns", "sponsors"],
     status: "ACTIVE",
     priority: 85
+  },
+
+  {
+    moduleId: "revenue.membership",
+    label: "Membership & Access Tiers",
+    localizedLabel: { ne: "सदस्यता तथा पहुँच तह", en: "Membership & Access Tiers" },
+    description: "Manage Reader, Member, Patron, Scholar, and Institutional tiers, benefits, and entitlements",
+    localizedDescription: { ne: "सदस्यता योजना, सुविधा र संरक्षक अधिकार व्यवस्थापन", en: "Membership plans, benefits, and entitlements" },
+    domain: "REVENUE",
+    route: "/admin/membership",
+    icon: "Crown",
+    featureKey: "revenue.membership",
+    requiredPermissions: ["revenue.view"],
+    allowedRoles: ["super_admin", "admin", "revenue_manager", "editor"],
+    tenantAware: false,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["membership", "patrons", "tiers", "subscriptions", "entitlements"],
+    status: "ACTIVE",
+    priority: 80
   },
 
   // 9. AUDIENCE
@@ -849,6 +993,41 @@ export const ADMIN_MODULES: AdminModule[] = [
     legacyAliases: ["/admin/data-governance", "/admin/content-audit"]
   },
   {
+    moduleId: "platform.navigation",
+    label: "Navigation, Menus & Layout",
+    localizedLabel: { ne: "नेभिगेसन, मेनु र लेआउट", en: "Navigation, Menus & Layout" },
+    description: "Manage public header, footer, mobile navigation menus, and page builder layouts",
+    localizedDescription: { ne: "सार्वजनिक मेनु, हेडर, फुटर र पृष्ठ लेआउट व्यवस्थापन", en: "Header, footer, and navigation menu manager" },
+    domain: "PLATFORM",
+    route: "/admin/menu",
+    icon: "Layout",
+    requiredPermissions: ["settings.manage"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin"],
+    tenantAware: false,
+    navigationVisibility: "ADMIN_ONLY",
+    searchKeywords: ["navigation", "menu", "menus", "header", "footer", "layout"],
+    status: "ACTIVE",
+    priority: 74,
+    legacyAliases: ["/admin/design-os", "/admin/page-builder"]
+  },
+  {
+    moduleId: "platform.search_index",
+    label: "Search & Discovery Index",
+    localizedLabel: { ne: "खोज तथा अनुक्रमणिका (SEO)", en: "Search & Discovery Index" },
+    description: "Unified cross-module search index, canonical URLs, sitemaps, and discovery ranking",
+    localizedDescription: { ne: "एकीकृत खोज अनुक्रमणिका, एसईओ र साइटम्याप व्यवस्थापन", en: "Cross-module search index and SEO" },
+    domain: "PLATFORM",
+    route: "/admin/seo-os",
+    icon: "Compass",
+    requiredPermissions: ["news.edit"],
+    allowedRoles: ["super_admin", "admin", "editorial_admin", "senior_editor", "editor"],
+    tenantAware: false,
+    navigationVisibility: "STAFF_ONLY",
+    searchKeywords: ["search", "index", "seo", "sitemap", "discovery"],
+    status: "ACTIVE",
+    priority: 72
+  },
+  {
     moduleId: "platform.settings",
     label: "System Settings",
     localizedLabel: { ne: "प्लेटफर्म सेटिङहरू", en: "System Settings" },
@@ -864,7 +1043,7 @@ export const ADMIN_MODULES: AdminModule[] = [
     searchKeywords: ["settings", "config", "branding", "logo", "meta"],
     status: "ACTIVE",
     priority: 70,
-    legacyAliases: ["/admin/setup-guide", "/admin/menu", "/admin/design-os", "/admin/page-builder"]
+    legacyAliases: ["/admin/setup-guide"]
   }
 ];
 

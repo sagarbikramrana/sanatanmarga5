@@ -144,4 +144,8 @@ export const AdminTranslationDashboard = lazyWithRetry(() => import("../pages/Ad
 export const AdminSeoOS = lazyWithRetry(() => import("../pages/AdminSeoOS"));
 export const AdminFeatureControl = lazyWithRetry(() => import("../pages/admin/AdminFeatureControl"));
 export const AdminReviewInboxPage = lazyWithRetry(() => import("../pages/admin/AdminReviewInboxPage"));
+export const AdminSnapshotCenter = lazyWithRetry(() => import("../pages/AdminSnapshotCenter"));
+export const AdminListenPage = lazyWithRetry(() => import("../pages/AdminListenPage"));
+export const AdminMembershipPage = lazyWithRetry(() => import("../pages/AdminMembershipPage"));
+export const AdminPanchangPage = lazyWithRetry(() => import("../pages/AdminPanchangPage"));
 export const TargetUnavailablePage = lazyWithRetry(() => import("../pages/TargetUnavailablePage"));

@@ -323,6 +323,15 @@ export class SnapshotOS {
   public dynamicNepalHubLiveFilePath = path.join(process.cwd(), "data", "dynamic_nepal_hub_live.json");
   public dynamicCollections: Record<string, Record<string, any>> = {};
   public dynamicCollectionsFilePath = path.join(process.cwd(), "data", "dynamic_collections.json");
+  public pendingFirestoreReconcile: Array<{
+    key: string;
+    collection: string;
+    docId: string;
+    action: "UPSERT" | "DELETE";
+    data?: any;
+    queuedAt: string;
+  }> = [];
+  public pendingFirestoreReconcileFilePath = path.join(process.cwd(), "data", "pending_firestore_reconcile.json");
   public snapshotStoreFilePath = path.join(process.cwd(), "data", "snapshot_store.json");
 
   private adminDb: any;
@@ -360,6 +369,10 @@ export class SnapshotOS {
     
     // Start background queue processor (checks every 10s for unhandled jobs)
     setInterval(() => this.processQueue(), 10000).unref();
+    // Periodically reconcile R2-backed pending mutations back to Firebase Firestore once quota resets (every 60s)
+    setInterval(() => {
+      this.reconcileR2ToFirestore().catch(() => {});
+    }, 60000).unref();
 
     // Single-flight startup initialization
     this.ensureInitialized().catch((err) => {
@@ -1604,6 +1617,121 @@ export class SnapshotOS {
         }
       })
       .catch(() => {});
+
+    this.loadPendingFirestoreReconcile();
+  }
+
+  private loadPendingFirestoreReconcile() {
+    try {
+      if (fs.existsSync(this.pendingFirestoreReconcileFilePath)) {
+        const raw = fs.readFileSync(this.pendingFirestoreReconcileFilePath, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          this.pendingFirestoreReconcile = parsed;
+        }
+      }
+    } catch {}
+
+    downloadSnapshotObject("snapshots/pending_firestore_reconcile.json")
+      .then((remoteQueue) => {
+        if (Array.isArray(remoteQueue) && remoteQueue.length > 0) {
+          const map = new Map<string, any>();
+          remoteQueue.forEach((item: any) => {
+            if (item?.key) map.set(item.key, item);
+          });
+          this.pendingFirestoreReconcile.forEach((item: any) => {
+            if (item?.key) map.set(item.key, item);
+          });
+          this.pendingFirestoreReconcile = Array.from(map.values());
+          this.atomicWriteJsonSync(this.pendingFirestoreReconcileFilePath, this.pendingFirestoreReconcile);
+        }
+      })
+      .catch(() => {});
+  }
+
+  private persistPendingFirestoreReconcile() {
+    this.atomicWriteJsonSync(this.pendingFirestoreReconcileFilePath, this.pendingFirestoreReconcile);
+    uploadSnapshotObject("snapshots/pending_firestore_reconcile.json", this.pendingFirestoreReconcile).catch(() => {});
+  }
+
+  public queueFirestoreReconcile(
+    colName: string,
+    docId: string,
+    action: "UPSERT" | "DELETE",
+    data?: any
+  ) {
+    if (!colName || !docId) return;
+    const key = `${colName}/${docId}`;
+    const existingIdx = this.pendingFirestoreReconcile.findIndex((i) => i.key === key);
+    const entry = {
+      key,
+      collection: colName,
+      docId,
+      action,
+      data: action === "UPSERT" ? data : undefined,
+      queuedAt: new Date().toISOString(),
+    };
+    if (existingIdx >= 0) {
+      this.pendingFirestoreReconcile[existingIdx] = entry;
+    } else {
+      this.pendingFirestoreReconcile.push(entry);
+    }
+    this.persistPendingFirestoreReconcile();
+  }
+
+  public async reconcileR2ToFirestore(): Promise<{
+    attempted: number;
+    reconciled: number;
+    remaining: number;
+  }> {
+    if (!this.adminDb || this.pendingFirestoreReconcile.length === 0) {
+      return {
+        attempted: 0,
+        reconciled: 0,
+        remaining: this.pendingFirestoreReconcile.length,
+      };
+    }
+
+    const items = [...this.pendingFirestoreReconcile];
+    let reconciled = 0;
+    const remainingItems: typeof this.pendingFirestoreReconcile = [];
+
+    for (const item of items) {
+      try {
+        const docRef = this.adminDb.collection(item.collection).doc(item.docId);
+        if (item.action === "DELETE") {
+          await docRef.delete();
+        } else if (item.data) {
+          await docRef.set(item.data, { merge: true });
+        }
+        reconciled++;
+      } catch (err: any) {
+        const msg = String(err?.message || "").toLowerCase();
+        remainingItems.push(item);
+        // Stop early if Firestore quota is still exhausted
+        if (msg.includes("quota") || msg.includes("resource_exhausted") || msg.includes("resource-exhausted")) {
+          const currentIdx = items.indexOf(item);
+          for (let j = currentIdx + 1; j < items.length; j++) {
+            remainingItems.push(items[j]);
+          }
+          break;
+        }
+      }
+    }
+
+    if (reconciled > 0) {
+      this.pendingFirestoreReconcile = remainingItems;
+      this.persistPendingFirestoreReconcile();
+      console.log(
+        `[Snapshot OS R2->Firestore Reconcile] Restored ${reconciled} R2-buffered documents to Firestore (${remainingItems.length} remaining).`
+      );
+    }
+
+    return {
+      attempted: items.length,
+      reconciled,
+      remaining: this.pendingFirestoreReconcile.length,
+    };
   }
 
   private persistDynamicCollectionsToR2() {

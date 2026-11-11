@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import Header from "@/src/components/layout/Header";
 import Footer from "@/src/components/layout/Footer";
 import SEOHead from "@/src/components/common/SEOHead";
-import { 
-  Sparkles, 
-  BookOpen, 
-  ShieldCheck, 
+import {
+  Sparkles,
+  BookOpen,
+  ShieldCheck,
   Clock,
   ArrowRight,
   Database,
@@ -133,11 +133,10 @@ export default function AskSanatanPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setDomain(tab.id as any)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                    domain === tab.id
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-muted-area/60 text-muted-text border-border-theme hover:text-foreground"
-                  }`}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${domain === tab.id
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-muted-area/60 text-muted-text border-border-theme hover:text-foreground"
+                    }`}
                 >
                   {tab.label}
                 </button>

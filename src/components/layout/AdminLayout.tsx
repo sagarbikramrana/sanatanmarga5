@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Menu, ShieldAlert, LogOut, Sun, Moon } from "lucide-react";
 import AdminSidebar from "./AdminSidebar";
 import { useAuth } from "@/src/lib/auth";
+import { adminFetch } from "@/src/lib/adminFetch";
 import { useNavigate } from "react-router-dom";
 import { AdminSkeleton } from "@/src/components/ui/PageLoaders";
 import PendingSyncBadge from "../admin/PendingSyncBadge";
@@ -42,7 +43,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const handleExitImpersonation = async () => {
     try {
-      await fetch("/api/admin/exit-impersonate", { method: "POST" });
+      await adminFetch("/api/admin/exit-impersonate", { method: "POST" });
     } catch (e) {
       // ignore
     }

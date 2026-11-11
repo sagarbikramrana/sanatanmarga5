@@ -4898,12 +4898,13 @@ ${verifiedSummaryText}
           const adminData = parseSpecialFields(rawData, true);
           const clientData = parseSpecialFields(rawData, false);
 
+          const resolvedDocId = docId || rawData.id || `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
           if (type && type.includes('DELETE')) {
-            if (docId) {
-              sos.removeDynamicDocument(colName, docId);
+            if (resolvedDocId) {
+              sos.removeDynamicDocument(colName, resolvedDocId);
             }
           } else {
-            sos.upsertDynamicDocument(colName, docId, rawData, true);
+            sos.upsertDynamicDocument(colName, resolvedDocId, rawData, true);
           }
 
           const aliasCols = colName === 'community_posts' ? ['communityPosts'] :
@@ -4914,8 +4915,10 @@ ${verifiedSummaryText}
                             colName === 'mediaAssets' ? ['media_assets'] : [];
 
           const targetCols = [colName, ...aliasCols];
+          const isDeleteAction = Boolean(type && type.includes('DELETE'));
 
           let writeSuccess = false;
+          let persistedToFirestore = false;
           const writeWithTimeout = async (fn: () => Promise<any>, timeoutMs = 2000) => {
             return Promise.race([
               fn(),
@@ -4929,19 +4932,28 @@ ${verifiedSummaryText}
                 await writeWithTimeout(async () => {
                   for (const cName of targetCols) {
                     const colRef = adminDb.collection(cName);
-                    if (type && type.includes('DELETE')) {
-                      if (docId) await colRef.doc(docId).delete();
-                    } else if (type && type.includes('UPDATE')) {
-                      if (docId) await colRef.doc(docId).set(adminData, { merge: true });
+                    if (isDeleteAction) {
+                      if (resolvedDocId) await colRef.doc(resolvedDocId).delete();
                     } else {
-                      if (docId) await colRef.doc(docId).set(adminData, { merge: true });
-                      else await colRef.add(adminData);
+                      await colRef.doc(resolvedDocId).set(adminData, { merge: true });
                     }
                   }
                 });
+                persistedToFirestore = true;
                 writeSuccess = true;
               } catch (adminErr: any) {
-                console.warn(`[sync-pending-posts] AdminDb write failed for '${colName}', falling back to Snapshot OS memory store:`, adminErr?.message);
+                console.warn(`[sync-pending-posts] AdminDb write failed for '${colName}', buffering in R2 for automatic Firestore restoration:`, adminErr?.message);
+              }
+            }
+
+            if (!persistedToFirestore) {
+              for (const cName of targetCols) {
+                sos.queueFirestoreReconcile(
+                  cName,
+                  resolvedDocId,
+                  isDeleteAction ? "DELETE" : "UPSERT",
+                  adminData
+                );
               }
             }
 
@@ -5039,6 +5051,19 @@ ${verifiedSummaryText}
       }
     }
     return res.json({ success: true, exists: false, data: null });
+  });
+
+  app.post("/api/admin/reconcile-r2-to-firestore", async (req, res) => {
+    try {
+      const actor = await authenticateRequestUser(req, adminApp, adminDb);
+      if (!actor) {
+        return res.status(401).json({ success: false, error: "Authentication required" });
+      }
+      const stats = await sos.reconcileR2ToFirestore();
+      return res.json({ success: true, ...stats });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || "Reconciliation failed" });
+    }
   });
 
   // 7. Dynamic Freshness Telemetry Endpoint

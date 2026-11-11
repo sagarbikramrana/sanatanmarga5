@@ -60,6 +60,31 @@ export default function AppRoutes() {
             <Pages.AdminReviewInboxPage />
           </ProtectedRoute>
         } />
+        <Route path="/admin/verification" element={
+          <ProtectedRoute allowedRoles={['admin', 'editor']}>
+            <Pages.AdminReviewInboxPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/snapshots" element={
+          <ProtectedRoute allowedRoles={['admin', 'editor']}>
+            <Pages.AdminSnapshotCenter />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/listen" element={
+          <ProtectedRoute allowedRoles={['admin', 'editor']}>
+            <Pages.AdminListenPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/panchang" element={
+          <ProtectedRoute allowedRoles={['admin', 'editor']}>
+            <Pages.AdminPanchangPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/membership" element={
+          <ProtectedRoute allowedRoles={['admin', 'editor']}>
+            <Pages.AdminMembershipPage />
+          </ProtectedRoute>
+        } />
         <Route path="/admin/social" element={
           <ProtectedRoute allowedRoles={['admin', 'editor']}>
             <Pages.AdminSocial />

@@ -59,12 +59,12 @@ interface ThemeContextType extends ThemeSettings {
 }
 
 const defaultTheme: ThemeSettings = {
-  primaryColor: "#D9381E",
-  accentColor: "#F5A623",
-  fontFamily: "Hind Siliguri",
-  cornerRadius: 2,
-  categoryHeroRadius: 40,
-  postCardRadius: 24,
+  primaryColor: "#111C2D",
+  accentColor: "#C58A3A",
+  fontFamily: "Noto Sans Devanagari",
+  cornerRadius: 12,
+  categoryHeroRadius: 20,
+  postCardRadius: 16,
   tickerSpeed: 30,
 };
 
@@ -270,34 +270,43 @@ export function StyleProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--primary", theme.primaryColor);
-    root.style.setProperty("--color-primary", theme.primaryColor);
-    root.style.setProperty("--accent", theme.accentColor);
-    root.style.setProperty("--color-accent", theme.accentColor);
+    const effectivePrimary =
+      isDarkMode && (theme.primaryColor === "#111C2D" || theme.primaryColor === "#121926")
+        ? "#C58A3A"
+        : theme.primaryColor;
+    const effectiveAccent =
+      isDarkMode && theme.accentColor === "#C58A3A"
+        ? "#D8A152"
+        : theme.accentColor;
 
-    const globalRadius = typeof theme.cornerRadius === "number" ? theme.cornerRadius : 2;
+    root.style.setProperty("--primary", effectivePrimary);
+    root.style.setProperty("--color-primary", effectivePrimary);
+    root.style.setProperty("--accent", effectiveAccent);
+    root.style.setProperty("--color-accent", effectiveAccent);
+
+    const globalRadius = typeof theme.cornerRadius === "number" ? theme.cornerRadius : 12;
     
     // Explicitly exempted components (Category Hero, Post Card) retain their designated values if set
     const catHeroRadius = typeof theme.categoryHeroRadius === "number" 
       ? theme.categoryHeroRadius 
-      : (globalRadius === 2 ? 40 : globalRadius);
+      : (globalRadius === 12 ? 20 : globalRadius);
       
     const postCardRadius = typeof theme.postCardRadius === "number" 
       ? theme.postCardRadius 
-      : (globalRadius === 2 ? 24 : globalRadius);
+      : (globalRadius === 12 ? 16 : globalRadius);
 
     root.style.setProperty("--app-radius", `${globalRadius}px`);
-    root.style.setProperty("--app-radius-sm", `${Math.max(0, Math.round(globalRadius * 0.16))}px`);
-    root.style.setProperty("--app-radius-md", `${Math.max(0, Math.round(globalRadius * 0.33))}px`);
-    root.style.setProperty("--app-radius-lg", `${Math.max(0, Math.round(globalRadius * 0.5))}px`);
+    root.style.setProperty("--app-radius-sm", `${Math.max(4, Math.round(globalRadius * 0.5))}px`);
+    root.style.setProperty("--app-radius-md", `${Math.max(6, Math.round(globalRadius * 0.66))}px`);
+    root.style.setProperty("--app-radius-lg", `${Math.max(8, Math.round(globalRadius * 0.85))}px`);
     root.style.setProperty("--app-radius-xl", `${globalRadius}px`);
-    root.style.setProperty("--app-radius-2xl", `${Math.max(0, Math.round(globalRadius * 1.33))}px`);
-    root.style.setProperty("--app-radius-3xl", `${Math.max(0, Math.round(globalRadius * 2))}px`);
-    root.style.setProperty("--app-radius-4xl", `${Math.max(0, Math.round(globalRadius * 3.33))}px`);
+    root.style.setProperty("--app-radius-2xl", `${Math.max(12, Math.round(globalRadius * 1.33))}px`);
+    root.style.setProperty("--app-radius-3xl", `${Math.max(16, Math.round(globalRadius * 1.66))}px`);
+    root.style.setProperty("--app-radius-4xl", `${Math.max(20, Math.round(globalRadius * 2))}px`);
     root.style.setProperty("--app-category-hero-radius", `${catHeroRadius}px`);
     root.style.setProperty("--app-post-card-radius", `${postCardRadius}px`);
     root.style.setProperty("--app-ticker-speed", `${theme.tickerSpeed ?? 30}s`);
-  }, [theme]);
+  }, [theme, isDarkMode]);
 
   const contextValue = useMemo(() => ({
     ...theme,

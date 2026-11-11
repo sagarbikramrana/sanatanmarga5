@@ -40,17 +40,19 @@
   --color-knowledge-connection: var(--knowledge-connection);
   --color-knowledge-selected: var(--knowledge-selected);
   --color-knowledge-glow: var(--knowledge-glow);
+  --color-secondary-accent: var(--secondary-accent, #236B57);
 
-  --font-sans: "Hind Siliguri", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --radius-sm: var(--app-radius-sm, 0.25rem);
-  --radius-md: var(--app-radius-md, 0.375rem);
-  --radius-lg: var(--app-radius-lg, 0.5rem);
+  --font-sans: "Noto Sans Devanagari", "Inter", "Manrope", "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --radius-sm: var(--app-radius-sm, 0.375rem);
+  --radius-md: var(--app-radius-md, 0.5rem);
+  --radius-lg: var(--app-radius-lg, 0.75rem);
   --radius-xl: var(--app-radius-xl, 1rem);
-  --radius-2xl: var(--app-radius-2xl, 1.5rem);
-  --radius-3xl: var(--app-radius-3xl, 2.5rem);
-  --radius-4xl: var(--app-radius-4xl, 4rem);
-  --radius-cat-hero: var(--app-category-hero-radius, 2.5rem);
-  --radius-post-card: var(--app-post-card-radius, 1.5rem);
+  --radius-2xl: var(--app-radius-2xl, 1.25rem);
+  --radius-3xl: var(--app-radius-3xl, 1.5rem);
+  --radius-4xl: var(--app-radius-4xl, 2rem);
+  --radius-cat-hero: var(--app-category-hero-radius, 1.5rem);
+  --radius-post-card: var(--app-post-card-radius, 1rem);
 
   /* Fluid Typography */
   --text-xxs: clamp(0.6rem, 0.55rem + 0.15vw, 0.7rem);
@@ -85,107 +87,109 @@
 
 :root {
   color-scheme: light;
-  --primary: #D9381E; /* Sanatan Vermilion Logo Red */
-  --primary-hover: #B82A12;
-  --primary-foreground: #ffffff;
-  --accent: #F5A623; /* Saffron Sun Gold */
-  --sacred: #D97706; /* Spiritual Gold */
-  
-  --background: #FAF8F5; /* Warm Sacred Himalayan Canvas */
-  --foreground: #121110; /* Temple Ink Black */
-  --card: #ffffff;
-  --card-foreground: #121110;
-  --surface-elevated: #ffffff;
-  --surface-interactive: #F3ECE6;
-  --muted: #F3ECE6;
-  --muted-foreground: #685F58;
-  --border: #E8E2D8;
-  --secondary: #F3ECE6;
-  --secondary-foreground: #121110;
-  --destructive: #D9381E;
-  --destructive-foreground: #ffffff;
-  --input: #E8E2D8;
-  --ring: #D9381E;
+  /* SanatanMedia 5.0 Canonical Light Mode Tokens (Section 3.2) */
+  --primary: #111C2D;                /* Deep Slate Ink */
+  --primary-hover: #1B2B44;
+  --primary-foreground: #FFFFFF;
+  --accent: #C58A3A;                 /* Heritage Copper Gold */
+  --sacred: #C58A3A;                 /* Heritage Copper Gold */
+  --secondary-accent: #236B57;       /* Himalayan Pine */
 
-  --text-primary: #121110;
-  --text-secondary: #4A433D;
-  --text-muted: #685F58;
-  --disabled: #9C938A;
+  --background: #F6F4EF;             /* Warm Ivory Paper */
+  --foreground: #121926;             /* Primary Text */
+  --card: #FFFFFF;                   /* Elevated Surface */
+  --card-foreground: #121926;
+  --surface-elevated: #FFFFFF;
+  --surface-interactive: #EFECE4;    /* Subtle Surface */
+  --muted: #EFECE4;
+  --muted-foreground: #6B7688;       /* Muted Text */
+  --border: #DDD7CA;                 /* Border / Divider */
+  --secondary: #EFECE4;
+  --secondary-foreground: #121926;
+  --destructive: #B83A3A;            /* Danger */
+  --destructive-foreground: #FFFFFF;
+  --input: #DDD7CA;
+  --ring: #C58A3A;
 
-  --success: #10B981;
-  --warning: #F5A623;
-  --danger: #D9381E;
-  --info: #2563EB;
-  --overlay: rgba(250, 248, 245, 0.85);
+  --text-primary: #121926;
+  --text-secondary: #465266;
+  --text-muted: #6B7688;
+  --disabled: #94A0B2;
 
-  --knowledge-node: #D9381E;
-  --knowledge-connection: rgba(217, 56, 30, 0.25);
-  --knowledge-selected: #121110;
-  --knowledge-glow: rgba(217, 56, 30, 0.35);
+  --success: #1F7A52;
+  --warning: #B7791F;
+  --danger: #B83A3A;
+  --info: #245EA8;
+  --overlay: rgba(246, 244, 239, 0.88);
 
-  --app-radius: 40px; /* Base for 2.5rem components (rounded-3xl) */
-  --app-category-hero-radius: 40px; /* Base for category hero images */
-  --app-radius-xl: calc(var(--app-radius) * 0.4); /* ~16px (rounded-xl) */
-  --app-radius-2xl: calc(var(--app-radius) * 0.8); /* ~32px (rounded-2xl) */
-  --app-radius-3xl: var(--app-radius); /* ~40px (rounded-3xl) */
-  --app-radius-4xl: calc(var(--app-radius) * 1.6); /* ~64px (rounded-4xl) */
+  --knowledge-node: #C58A3A;
+  --knowledge-connection: rgba(197, 138, 58, 0.28);
+  --knowledge-selected: #111C2D;
+  --knowledge-glow: rgba(35, 107, 87, 0.35);
 
-  scrollbar-color: #9C938A #F3ECE6;
+  --app-radius: 16px;
+  --app-category-hero-radius: 20px;
+  --app-radius-xl: 12px;
+  --app-radius-2xl: 16px;
+  --app-radius-3xl: 20px;
+  --app-radius-4xl: 24px;
+
+  scrollbar-color: #6B7688 #EFECE4;
 }
 
 .dark {
   color-scheme: dark;
 
-  /* Core Backgrounds - Official Sanatan Media Dark Palette */
-  --background: #100E0D;            /* Primary Background: Deep Temple Ink Black */
-  --card: #1A1817;                  /* Secondary Surface: Dark Cards */
-  --surface-elevated: #24201E;       /* Elevated Surface: Modals & Drawers */
-  --surface-interactive: #2E2825;    /* Interactive Surface: Hover states */
-  --border: #3D3531;                 /* Border / Dividers */
+  /* SanatanMedia 5.0 Canonical Dark Mode Tokens (Section 3.2) */
+  --background: #0B111B;             /* Primary Dark Surface */
+  --card: #121B29;                   /* Elevated Dark Surface */
+  --surface-elevated: #121B29;
+  --surface-interactive: #182436;    /* Subtle Dark Surface */
+  --border: #253247;                 /* Dark Border / Divider */
 
-  /* Brand Colors */
-  --primary: #EA381E;                /* Sanatan Vermilion: Active navigation, CTAs, Highlights */
-  --primary-hover: #F5A623;          /* Saffron Gold: Hover states */
-  --primary-foreground: #ffffff;     /* High Contrast White on Vermilion */
+  /* Brand & Accent Colors */
+  --primary: #C58A3A;                /* Heritage Copper Gold for high-contrast active states on dark slate */
+  --primary-hover: #D8A152;
+  --primary-foreground: #0B111B;
+  --accent: #D8A152;                 /* Warm Gold Accent */
+  --sacred: #D8A152;
+  --secondary-accent: #389178;       /* Himalayan Pine (Dark Adjusted) */
 
-  --accent: #F5A623;                 /* Saffron Sun Gold */
-  --sacred: #F59E0B;                 /* Sacred Gold */
+  /* Typography */
+  --card-foreground: #F3F5F8;
+  --foreground: #F3F5F8;
+  --text-primary: #F3F5F8;
+  --text-secondary: #B5C0D0;
+  --text-muted: #7E8B9F;
+  --disabled: #526075;
 
-  /* Card and Text - Himalayan Warm Ivory Typography */
-  --card-foreground: #FAF6F0;
-  --foreground: #FAF6F0;
-  --text-primary: #FAF6F0;           /* Primary Text: Warm Ivory */
-  --text-secondary: #D4CEB8;         /* Secondary Text */
-  --text-muted: #A8A092;             /* Muted Text */
-  --disabled: #635C53;               /* Disabled Text */
+  --muted: #182436;
+  --muted-foreground: #7E8B9F;
 
-  --muted: #24201E;                  /* Interactive Surface / Muted areas */
-  --muted-foreground: #A8A092;       /* Secondary Text / Muted */
+  --secondary: #182436;
+  --secondary-foreground: #F3F5F8;
 
-  --secondary: #24201E;
-  --secondary-foreground: #FAF6F0;
+  --destructive: #D65A5A;
+  --destructive-foreground: #FFFFFF;
 
-  --destructive: #EF4444;
-  --destructive-foreground: #ffffff;
+  --input: #253247;
+  --ring: #D8A152;
 
-  --input: #3D3531;
-  --ring: #EA381E;
+  /* Semantic Status Colors */
+  --success: #2EA370;
+  --warning: #D89632;
+  --danger: #D65A5A;
+  --info: #4B89DA;
 
-  /* Nepal Hub Integration Colors */
-  --success: #10B981;                /* Forex: Positive movement */
-  --warning: #F5A623;                /* Holiday alerts */
-  --danger: #EA381E;                 /* Emergency notices */
-  --info: #3B82F6;                   /* Municipality updates */
-
-  --overlay: rgba(16, 14, 13, 0.88);
+  --overlay: rgba(11, 17, 27, 0.90);
 
   /* Knowledge OS Tokens */
-  --knowledge-node: #EA381E;
-  --knowledge-connection: rgba(234, 56, 30, 0.25);
-  --knowledge-selected: #FAF6F0;
-  --knowledge-glow: rgba(234, 56, 30, 0.35);
+  --knowledge-node: #D8A152;
+  --knowledge-connection: rgba(216, 161, 82, 0.28);
+  --knowledge-selected: #F3F5F8;
+  --knowledge-glow: rgba(56, 145, 120, 0.35);
 
-  scrollbar-color: #3D3531 #100E0D;
+  scrollbar-color: #253247 #0B111B;
 }
 
 @layer base {

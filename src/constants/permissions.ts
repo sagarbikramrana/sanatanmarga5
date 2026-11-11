@@ -531,6 +531,149 @@ export const ROLE_DEFINITIONS: Record<string, RoleDefinition> = {
       PERMISSIONS.LIVE_CREATE
     ],
     badgeColor: "bg-purple-500/10 text-purple-500 border-purple-500/20"
+  },
+  reader: {
+    id: "reader",
+    nameNe: "पाठक (Reader)",
+    nameEn: "Public Reader",
+    descriptionNe: "सार्वजनिक समाचार, रेडियो, ग्रन्थ र पञ्चाङ्ग अध्ययन गर्ने प्रयोगकर्ता।",
+    descriptionEn: "Can read public articles, listen to Sanatan Radio, explore SGIS manuscripts, and view Panchang.",
+    permissions: [],
+    badgeColor: "bg-slate-500/10 text-slate-500 border-slate-500/20"
+  },
+  fact_checker: {
+    id: "fact_checker",
+    nameNe: "तथ्य जाँचकर्ता (Fact Checker)",
+    nameEn: "Source & Fact Verifier",
+    descriptionNe: "समाचारका स्रोत, दाबी र प्रमाण प्रमाणीकरण गर्ने।",
+    descriptionEn: "Verifies primary sources, claim-to-source mappings, and fact-check checklists before publication.",
+    permissions: [
+      PERMISSIONS.NEWS_EDIT,
+      PERMISSIONS.EVENTS_VERIFY,
+      PERMISSIONS.EVENTS_MANAGE_SOURCES,
+    ],
+    badgeColor: "bg-emerald-600/10 text-emerald-600 border-emerald-600/20"
+  },
+  news_editor: {
+    id: "news_editor",
+    nameNe: "समाचार सम्पादक (News Editor)",
+    nameEn: "Newsroom Desk Editor",
+    descriptionNe: "समाचार मस्यौदा सम्पादन, विधा वर्गीकरण र समीक्षा गर्ने।",
+    descriptionEn: "Edits news drafts, assigns canonical categories, and coordinates desk reviews.",
+    permissions: [
+      PERMISSIONS.NEWS_CREATE,
+      PERMISSIONS.NEWS_EDIT,
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.MEDIA_MANAGE,
+      PERMISSIONS.EVENTS_EDIT,
+    ],
+    badgeColor: "bg-teal-600/10 text-teal-600 border-teal-600/20"
+  },
+  chief_editor: {
+    id: "chief_editor",
+    nameNe: "प्रधान सम्पादक (Chief Editor)",
+    nameEn: "Editor-in-Chief",
+    descriptionNe: "सम्पादकीय नीति, अन्तिम प्रकाशन स्वीकृति, गृहपृष्ठ संरचना र सुधार निर्णयको सर्वोच्च सम्पादकीय अधिकार।",
+    descriptionEn: "Final editorial authority over publication, Homepage composition, corrections, and takedowns.",
+    permissions: [
+      PERMISSIONS.NEWS_CREATE,
+      PERMISSIONS.NEWS_EDIT,
+      PERMISSIONS.NEWS_PUBLISH,
+      PERMISSIONS.NEWS_DELETE,
+      PERMISSIONS.NEWS_OVERRIDE,
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.MEDIA_MANAGE,
+      PERMISSIONS.LIVE_CREATE,
+      PERMISSIONS.LIVE_EDIT,
+      PERMISSIONS.RADIO_MANAGE,
+      PERMISSIONS.EVENTS_CREATE,
+      PERMISSIONS.EVENTS_EDIT,
+      PERMISSIONS.EVENTS_VERIFY,
+      PERMISSIONS.EVENTS_PUBLISH,
+      PERMISSIONS.EVENTS_RETRACT,
+      PERMISSIONS.GOVERNANCE_MANAGE,
+    ],
+    badgeColor: "bg-amber-600/10 text-amber-600 border-amber-600/20"
+  },
+  sgis_scholar: {
+    id: "sgis_scholar",
+    nameNe: "सनातन ग्रन्थ विद्वान् (SGIS Scholar)",
+    nameEn: "SGIS Manuscript Scholar",
+    descriptionNe: "सनातन ग्रन्थ, संस्कृत श्लोक, भाष्य र उद्धरणहरूको प्राज्ञिक प्रमाणीकरण गर्ने।",
+    descriptionEn: "Reviews and approves SGIS manuscripts, Sanskrit verses, translations, and scholarly citations.",
+    permissions: [
+      PERMISSIONS.NEWS_EDIT,
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.EVENTS_MANAGE_KNOWLEDGE_LINKS,
+      PERMISSIONS.EVENTS_MANAGE_SOURCES,
+    ],
+    badgeColor: "bg-amber-700/10 text-amber-700 border-amber-700/20"
+  },
+  manuscript_curator: {
+    id: "manuscript_curator",
+    nameNe: "पाण्डुलिपि संरक्षक (Manuscript Curator)",
+    nameEn: "Archival Manuscript Curator",
+    descriptionNe: "पाण्डुलिपि डिजिटाइजेसन, मेटाडेटा दर्ता र अभिलेख संरक्षण गर्ने।",
+    descriptionEn: "Catalogs archival manuscripts, metadata, provenance records, and digitization assets.",
+    permissions: [
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.MEDIA_MANAGE,
+      PERMISSIONS.EVENTS_MANAGE_KNOWLEDGE_LINKS,
+    ],
+    badgeColor: "bg-cyan-600/10 text-cyan-600 border-cyan-600/20"
+  },
+  media_producer: {
+    id: "media_producer",
+    nameNe: "मिडिया निर्माता (Media Producer)",
+    nameEn: "MediaOS & ListenOS Producer",
+    descriptionNe: "लाइभ टिभी, पोडकास्ट, भिडियो एपिसोड र ट्रान्सक्रिप्ट उत्पादन गर्ने।",
+    descriptionEn: "Manages Live TV broadcasts, VOD clips, ListenOS podcast episodes, and transcripts.",
+    permissions: [
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.MEDIA_MANAGE,
+      PERMISSIONS.LIVE_CREATE,
+      PERMISSIONS.LIVE_EDIT,
+      PERMISSIONS.RADIO_MANAGE,
+    ],
+    badgeColor: "bg-rose-500/10 text-rose-500 border-rose-500/20"
+  },
+  community_moderator: {
+    id: "community_moderator",
+    nameNe: "चौतारी मोडरेटर (Community Moderator)",
+    nameEn: "Chautari Community Moderator",
+    descriptionNe: "चौतारी छलफल, उजुरी समीक्षा र सामुदायिक मर्यादा कायम राख्ने।",
+    descriptionEn: "Reviews flagged community posts, enforces civic guidelines, and curates public discussions.",
+    permissions: [
+      PERMISSIONS.COMMUNITY_POST,
+      PERMISSIONS.COMMUNITY_COMMENT,
+      PERMISSIONS.COMMUNITY_MODERATE,
+    ],
+    badgeColor: "bg-pink-500/10 text-pink-500 border-pink-500/20"
+  },
+  finance_auditor: {
+    id: "finance_auditor",
+    nameNe: "वित्तीय लेखापरीक्षक (Finance Auditor)",
+    nameEn: "Financial Ledger Auditor",
+    descriptionNe: "RevenueOS आम्दानी, बीजक र अपरिवर्तनीय लेजर अभिलेखहरूको लेखापरीक्षण गर्ने।",
+    descriptionEn: "Read and audit authority over RevenueOS campaigns, invoices, and append-only ledger adjustments.",
+    permissions: [
+      PERMISSIONS.REVENUE_VIEW,
+      PERMISSIONS.GOVERNANCE_MANAGE,
+    ],
+    badgeColor: "bg-indigo-600/10 text-indigo-600 border-indigo-600/20"
+  },
+  commerce_manager: {
+    id: "commerce_manager",
+    nameNe: "वाणिज्य व्यवस्थापक (Commerce Manager)",
+    nameEn: "Sanatan Store & Commerce Manager",
+    descriptionNe: "सनातन स्टोरका उत्पादन, मूल्य, स्टक र अर्डर वितरण व्यवस्थापन गर्ने।",
+    descriptionEn: "Manages Store product catalog, inventory, order fulfillment, and store snapshot publishing.",
+    permissions: [
+      PERMISSIONS.REVENUE_VIEW,
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.SETTINGS_MANAGE,
+    ],
+    badgeColor: "bg-emerald-600/10 text-emerald-600 border-emerald-600/20"
   }
 };
 

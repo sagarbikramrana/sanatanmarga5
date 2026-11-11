@@ -46,6 +46,7 @@ interface MediaOSContextType {
   
   // Actions
   playArticle: (article: Article) => Promise<void>;
+  playTrack: (track: Partial<PlaylistItem> & { id: string; title: string; audioUrl?: string; subtitle?: string; type?: string }) => Promise<void>;
   enqueueArticle: (article: Article) => void;
   playQueue: (articles: Article[], queueTitle: string) => Promise<void>;
   playSavedPlaylist: (playlist: SavedPlaylist) => Promise<void>;
@@ -181,6 +182,9 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("sanatan-media-mutex", { detail: { source: "media-os" } }));
+    }
     isSpeechFallback.current = false;
 
     const activeGender = customVoice || voiceGenderRef.current;
@@ -292,10 +296,27 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setSavedPlaylists(PlaylistEngine.getSavedPlaylists());
 
+    const handleExternalMutex = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.source && detail.source !== "media-os") {
+        audioPlaybackManager.pause();
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        setIsPlaying(false);
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("sanatan-media-mutex", handleExternalMutex);
+    }
+
     return () => {
       unsubscribe();
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("sanatan-media-mutex", handleExternalMutex);
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
       }
     };
   }, [handleTrackEnded, refreshListenOSQueue]);
@@ -328,6 +349,29 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setQueue(newQueue);
     queueRef.current = newQueue;
     setQueueTitle(`🎧 ${article.title.slice(0, 30)}...`);
+    setCurrentIndex(0);
+    currentIndexRef.current = 0;
+    setPlayerState("minimized");
+    await playTrackAtIndex(0);
+  }, [playTrackAtIndex]);
+
+  // External Action: Play direct podcast/radio/audio track
+  const playTrack = useCallback(async (trackInput: Partial<PlaylistItem> & { id: string; title: string; audioUrl?: string; subtitle?: string; type?: string }) => {
+    const item: PlaylistItem = {
+      id: trackInput.id,
+      articleId: trackInput.articleId || trackInput.id,
+      title: trackInput.title,
+      category: trackInput.subtitle || trackInput.category || "ListenOS",
+      audioUrl: trackInput.audioUrl || "",
+      contentSummary: trackInput.contentSummary || trackInput.title,
+      duration: trackInput.duration || 180,
+      addedAt: trackInput.addedAt || new Date().toISOString(),
+      imageUrl: trackInput.imageUrl
+    };
+    const newQueue = [item];
+    setQueue(newQueue);
+    queueRef.current = newQueue;
+    setQueueTitle(`🎧 ${trackInput.title.slice(0, 30)}`);
     setCurrentIndex(0);
     currentIndexRef.current = 0;
     setPlayerState("minimized");
@@ -576,6 +620,7 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     savedPlaylists,
     diagnostics,
     playArticle,
+    playTrack,
     enqueueArticle,
     playQueue,
     playSavedPlaylist,
@@ -617,6 +662,7 @@ export const MediaOSProvider: React.FC<{ children: React.ReactNode }> = ({ child
     savedPlaylists,
     diagnostics,
     playArticle,
+    playTrack,
     enqueueArticle,
     playQueue,
     playSavedPlaylist,

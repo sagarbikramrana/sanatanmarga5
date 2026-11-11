@@ -165,6 +165,87 @@ class SnapshotIdentityRegistry {
       category: "knowledge",
       schemaVersion: 5
     });
+
+    // 6. Extended 13-Module Canonical Snapshot Contracts (SanatanMedia 5.0)
+    this.register({
+      logicalId: "live_tv_public",
+      canonicalKey: "media/live-tv",
+      legacyAliases: ["live_tv_public", "live_tv"],
+      category: "media",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "radio_public",
+      canonicalKey: "media/radio",
+      legacyAliases: ["radio_public", "radio", "radio-schedule"],
+      category: "media",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "listen_catalog",
+      canonicalKey: "media/listen-catalog",
+      legacyAliases: ["listen_catalog", "podcasts"],
+      category: "media",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "sgis_catalog",
+      canonicalKey: "knowledge/sgis-catalog",
+      legacyAliases: ["sgis_catalog", "sgis"],
+      category: "knowledge",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "academy_catalog",
+      canonicalKey: "knowledge/academy-catalog",
+      legacyAliases: ["academy_catalog", "academy"],
+      category: "knowledge",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "panchang_daily",
+      canonicalKey: "events/panchang-daily",
+      legacyAliases: ["panchang_daily", "panchang"],
+      category: "events",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "ad_slots_public",
+      canonicalKey: "ads/slots-public",
+      legacyAliases: ["ad_slots_public", "ads"],
+      category: "ads",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "store_catalog",
+      canonicalKey: "core/store-catalog",
+      legacyAliases: ["store_catalog", "store"],
+      category: "core",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "membership_plans",
+      canonicalKey: "core/membership-plans",
+      legacyAliases: ["membership_plans", "membership"],
+      category: "core",
+      schemaVersion: 5
+    });
+
+    this.register({
+      logicalId: "navigation_config",
+      canonicalKey: "core/navigation-config",
+      legacyAliases: ["navigation_config", "menu"],
+      category: "core",
+      schemaVersion: 5
+    });
   }
 
   public register(mapping: SnapshotIdentityMapping): void {

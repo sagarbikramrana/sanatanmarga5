@@ -532,63 +532,59 @@ export default function MobileBottomNav() {
               <Link
                 to="/latest"
                 className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-                  location.pathname === "/latest"
+                  location.pathname === "/latest" || location.pathname === "/news"
                     ? "text-primary font-black scale-105"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 aria-label="Latest News"
               >
-                <Newspaper size={20} className={location.pathname === "/latest" ? "stroke-[2.5px]" : "stroke-2"} />
+                <Newspaper size={20} className={location.pathname === "/latest" || location.pathname === "/news" ? "stroke-[2.5px]" : "stroke-2"} />
                 <span className="text-[10px] mt-0.5 font-bold tracking-tight">
                   {language === "en" ? "News" : "समाचार"}
                 </span>
               </Link>
 
-              {/* 3. CENTER POST BUTTON WITH ANIMATED GRADIENT MESH STROKE */}
-              <div className="flex flex-col items-center justify-center flex-1 relative -mt-4 z-20">
-                <button
-                  onClick={() => setIsRolePostModalOpen(true)}
-                  className="relative group focus:outline-none cursor-pointer flex flex-col items-center"
-                  aria-label={language === "en" ? "Post & Create Content" : "सामग्री पोष्ट तथा सिर्जना"}
-                  title={language === "en" ? "Post & Create Content" : "सामग्री पोष्ट तथा सिर्जना गर्नुहोस्"}
-                >
-                  {/* Animated Gradient Mesh Stroke Ring without Ambient Glow */}
-                  <div className="relative p-[2.5px] rounded-full overflow-hidden">
-                    <div className="absolute -inset-[100%] gradient-mesh-stroke" />
-                    
-                    {/* Inner Central Solid Circle */}
-                    <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-primary via-amber-600 to-amber-500 text-white flex items-center justify-center group-hover:scale-105 active:scale-95 transition-transform shadow-md">
-                      <Plus 
-                        size={24} 
-                        className="stroke-[3px] transition-transform duration-300 group-hover:rotate-90" 
-                      />
-                    </div>
-                  </div>
-
-                  <span className="text-[9px] sm:text-[10px] mt-0.5 font-black text-amber-600 dark:text-amber-400 tracking-tight leading-none group-hover:text-primary transition-colors">
-                    {language === "en" ? "Post" : "पोष्ट"}
-                  </span>
-                </button>
-              </div>
-
-              {/* 4. Radio / ListenOS */}
+              {/* 3. Live / Radio */}
               <Link
                 to="/radio"
                 className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-                  isRadioPage
+                  isRadioPage || location.pathname.startsWith("/live")
                     ? "text-primary font-black scale-105"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
-                aria-label="Listen & Radio"
+                aria-label="Live & Radio"
               >
                 <div className="relative">
-                  <Radio size={20} className={isRadioPage ? "stroke-[2.5px] text-amber-500" : "stroke-2"} />
+                  <Radio size={20} className={isRadioPage || location.pathname.startsWith("/live") ? "stroke-[2.5px] text-accent" : "stroke-2"} />
                   {mediaOS.isPlaying && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent animate-ping" />
                   )}
                 </div>
                 <span className="text-[10px] mt-0.5 font-bold tracking-tight">
-                  {language === "en" ? "Radio" : "रेडियो"}
+                  {language === "en" ? "Live/Radio" : "लाइभ/रेडियो"}
+                </span>
+              </Link>
+
+              {/* 4. SGIS (Sanatan Grantha & Intelligence System) */}
+              <Link
+                to="/knowledge"
+                className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+                  location.pathname.startsWith("/knowledge") || location.pathname.startsWith("/sgis") || location.pathname.startsWith("/archives")
+                    ? "text-primary font-black scale-105"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-label="SGIS Grantha & Knowledge"
+              >
+                <BookOpen
+                  size={20}
+                  className={
+                    location.pathname.startsWith("/knowledge") || location.pathname.startsWith("/sgis") || location.pathname.startsWith("/archives")
+                      ? "stroke-[2.5px]"
+                      : "stroke-2"
+                  }
+                />
+                <span className="text-[10px] mt-0.5 font-bold tracking-tight">
+                  {language === "en" ? "SGIS" : "ग्रन्थ/SGIS"}
                 </span>
               </Link>
 
@@ -605,7 +601,7 @@ export default function MobileBottomNav() {
                 <div className="relative">
                   <moreBtn.icon size={20} className={activeOverlay !== "none" ? "stroke-[2.5px]" : "stroke-2"} />
                   {isArticlePage && contextData.isBookmarked && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent" />
                   )}
                 </div>
                 <span className="text-[10px] mt-0.5 font-bold tracking-tight">

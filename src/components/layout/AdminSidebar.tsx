@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { 
-  LogOut, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronDown, 
-  ChevronUp, 
-  X, 
+import {
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  X,
   Zap,
   Search,
   Command,
@@ -22,20 +22,52 @@ import {
   DollarSign,
   Cpu,
   Sliders,
-  Inbox
+  Inbox,
+  PenTool,
+  Tag,
+  Layout,
+  Compass,
+  Radio,
+  Volume2,
+  MapPin,
+  Clock,
+  Archive,
+  MessageSquare,
+  ShieldAlert,
+  Share2,
+  Camera,
+  ShoppingBag,
+  TrendingUp,
+  Megaphone,
+  BarChart3,
+  Bell,
+  Mail,
+  Globe,
+  Workflow,
+  LifeBuoy,
+  Activity,
+  Building2,
+  ShieldCheck,
+  Settings,
+  Layers,
+  Headphones,
+  CheckCircle2,
+  Crown,
+  Tv
 } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/src/lib/firebase";
+import { adminFetch } from "@/src/lib/adminFetch";
 import { useAuth } from "@/src/lib/auth";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { usePermissions } from "@/src/context/PermissionsContext";
 import { useTheme } from "@/src/components/StyleProvider";
 import { useFeatureControl } from "@/src/context/FeatureControlContext";
-import { 
-  ADMIN_DOMAINS, 
-  getVisibleAdminNavigation, 
-  AdminDomain, 
-  AdminModule 
+import {
+  ADMIN_DOMAINS,
+  getVisibleAdminNavigation,
+  AdminDomain,
+  AdminModule
 } from "@/src/admin/adminModuleRegistry";
 import AdminCommandPalette from "@/src/components/admin/AdminCommandPalette";
 
@@ -57,7 +89,38 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
   DollarSign,
   Cpu,
   Sliders,
-  Folder
+  Folder,
+  PenTool,
+  Tag,
+  Layout,
+  Compass,
+  Radio,
+  Volume2,
+  MapPin,
+  Clock,
+  Archive,
+  MessageSquare,
+  ShieldAlert,
+  Share2,
+  Camera,
+  ShoppingBag,
+  TrendingUp,
+  Megaphone,
+  BarChart3,
+  Bell,
+  Mail,
+  Globe,
+  Workflow,
+  LifeBuoy,
+  Activity,
+  Building2,
+  ShieldCheck,
+  Settings,
+  Layers,
+  Headphones,
+  CheckCircle2,
+  Crown,
+  Tv
 };
 
 export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth }: AdminSidebarProps) {
@@ -81,14 +144,14 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth 
   // Fetch real command center summary badge
   useEffect(() => {
     let mounted = true;
-    fetch("/api/admin/command-center")
-      .then(res => res.json())
+    adminFetch("/api/admin/command-center")
+      .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (mounted && data?.reviews?.pendingCount !== undefined) {
           setReviewCount(data.reviews.pendingCount);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => { mounted = false; };
   }, [location.pathname]);
 
@@ -152,19 +215,18 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth 
 
       {/* Backdrop overlay for mobile drawer */}
       {isMobile && !isCollapsed && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-xs z-35 transition-opacity animate-in fade-in"
           onClick={() => setIsCollapsed(true)}
           aria-label="Close menu backdrop"
         />
       )}
 
-      <aside 
-        className={`fixed top-0 left-0 h-screen z-40 bg-card border-r border-border-theme transition-all duration-300 flex flex-col shadow-lg ${
-          isMobile 
-            ? isCollapsed ? "-translate-x-full" : "translate-x-0 w-72 shadow-2xl"
-            : isCollapsed ? "w-20" : "w-68"
-        }`}
+      <aside
+        className={`fixed top-0 left-0 h-screen z-40 bg-card border-r border-border-theme transition-all duration-300 flex flex-col shadow-lg ${isMobile
+          ? isCollapsed ? "-translate-x-full" : "translate-x-0 w-72 shadow-2xl"
+          : isCollapsed ? "w-20" : "w-68"
+          }`}
       >
         {/* Brand Header */}
         <div className={`h-16 flex items-center border-b border-border-theme shrink-0 ${isCollapsed && !isMobile ? "px-2 justify-center" : "px-4 justify-between"}`}>
@@ -203,7 +265,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth 
                   {isDarkMode ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-muted-text" />}
                 </button>
 
-                <button 
+                <button
                   onClick={() => setIsCollapsed(true)}
                   className="p-1.5 rounded-lg hover:bg-muted-area text-muted-text hover:text-foreground transition-colors cursor-pointer"
                   title="मेनु बन्द गर्नुहोस् (Close Sidebar)"
@@ -267,11 +329,10 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth 
                           onClick={() => {
                             if (isMobile) setIsCollapsed(true);
                           }}
-                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                            isActive
-                              ? "bg-primary text-white shadow-xs font-black"
-                              : "text-muted-text hover:text-foreground hover:bg-muted-area"
-                          } ${isCollapsed && !isMobile ? "justify-center px-0" : ""}`}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isActive
+                            ? "bg-primary text-white shadow-xs font-black"
+                            : "text-muted-text hover:text-foreground hover:bg-muted-area"
+                            } ${isCollapsed && !isMobile ? "justify-center px-0" : ""}`}
                           title={mod.label}
                         >
                           <IconComponent size={16} className={`shrink-0 ${isActive ? "text-white" : "text-primary/70"}`} />
@@ -282,9 +343,8 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth 
                           )}
 
                           {hasBadge && (!isCollapsed || isMobile) && (
-                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black shrink-0 ${
-                              isActive ? "bg-white text-primary" : "bg-rose-500 text-white"
-                            }`}>
+                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black shrink-0 ${isActive ? "bg-white text-primary" : "bg-rose-500 text-white"
+                              }`}>
                               {reviewCount}
                             </span>
                           )}
