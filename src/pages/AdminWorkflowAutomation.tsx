@@ -242,7 +242,8 @@ export default function AdminWorkflowAutomation() {
 
   const handleTestTrigger = async (wf: TenantWorkflow) => {
     setTestingId(wf.id);
-    await triggerWorkflow(wf.trigger, {
+    const triggerName: WorkflowTriggerType = wf.trigger || "story_submitted";
+    await triggerWorkflow(triggerName, {
       tenantId: activeTenant.id,
       title: `[Manual Test Trigger] ${wf.title}`,
       author: currentUser?.displayName || currentUser?.email || "Admin Context"
@@ -251,7 +252,7 @@ export default function AdminWorkflowAutomation() {
     // Log to Immutable Audit Ledger as well
     if (db && currentUser) {
       await addDoc(collection(db, "auditLogs"), {
-        action: `WORKFLOW_TRIGGERED_TEST_${wf.trigger.toUpperCase()}`,
+        action: `WORKFLOW_TRIGGERED_TEST_${String(triggerName).toUpperCase()}`,
         userId: currentUser.uid,
         userEmail: currentUser.email,
         userName: currentUser.displayName || currentUser.email,

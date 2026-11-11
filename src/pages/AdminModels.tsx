@@ -81,25 +81,14 @@ export default function AdminModels() {
     e.preventDefault();
     setIsSavingHero(true);
     try {
-      await updateDoc(doc(db, "settings", "glamour_hero"), {
+      await setDoc(doc(db, "settings", "glamour_hero"), {
         ...heroSettings,
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
       toast.success("Hero section updated successfully");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving hero:", err);
-      // If doc doesn't exist, create it
-      try {
-        await addDoc(collection(db, "settings"), { ...heroSettings, id: "glamour_hero" }); // Wait, settings is a collection, usually we use setDoc for specific IDs if it's a fixed setting
-        // Re-attempting updateDoc if it failed because it doesn't exist is better handled by setDoc
-        await setDoc(doc(db, "settings", "glamour_hero"), {
-          ...heroSettings,
-          updatedAt: serverTimestamp()
-        });
-        toast.success("Hero section updated successfully");
-      } catch (innerErr) {
-        toast.error("Failed to update hero section");
-      }
+      toast.error("Failed to update hero section: " + err.message);
     } finally {
       setIsSavingHero(false);
     }

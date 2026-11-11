@@ -143,6 +143,24 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
     setScoreDelta(prev => prev + delta);
     chautariStore.setUserVote(post.id, newVote);
 
+    const currentUp = Number(post.upvotes || 0);
+    const currentDown = Number(post.downvotes || 0);
+    let nextUp = currentUp;
+    let nextDown = currentDown;
+
+    if (newVote === null) {
+      if (type === "up") nextUp = Math.max(0, currentUp - 1);
+      else nextDown = Math.max(0, currentDown - 1);
+    } else if (newVote === "up") {
+      nextUp = currentUp + 1;
+      if (oldVote === "down") nextDown = Math.max(0, currentDown - 1);
+    } else if (newVote === "down") {
+      nextDown = currentDown + 1;
+      if (oldVote === "up") nextUp = Math.max(0, currentUp - 1);
+    }
+
+    chautariStore.updateLocalPost(post.id, { upvotes: nextUp, downvotes: nextDown });
+
     if (newVote === null) {
       // Remove vote
       offlineQueue.queueAction({

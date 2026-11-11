@@ -105,9 +105,9 @@ export default function SgisDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <div className="bg-background text-foreground pb-20">
       {/* Top Banner Header */}
-      <div className="border-b border-border-theme bg-card/60 backdrop-blur-md sticky top-0 z-40">
+      <div className="border-b border-border-theme bg-card/60 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-sacred/10 border border-sacred/20 text-sacred flex items-center justify-center shadow-sm">

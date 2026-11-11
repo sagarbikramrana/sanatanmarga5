@@ -282,6 +282,12 @@ export default function HomepageAdmin() {
         await setDocWithQueue(doc(db, "settings", "site_settings"), { heroVideoUrl }, { merge: true });
       }
 
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("sanatan_homepage_settings", JSON.stringify(configPayload));
+        } catch (e) {}
+      }
+
       // Invalidate server snapshot to force generation
       try {
         await snapshotEngine.triggerServerRebuild({ triggerSource: "admin_homepage_save" });

@@ -27,7 +27,7 @@ import { CANONICAL_CATEGORIES, normalizeArticleCategory } from "@/src/constants/
 import { continuityEngine } from "@/src/lib/continuityEngine";
 import { contentEventBus } from "@/src/lib/contentEventBus";
 import { offlineQueue, setDocWithQueue } from "@/src/lib/offlineQueue";
-import { db, doc } from "@/src/lib/firebase";
+import { db, doc, safeOnSnapshot } from "@/src/lib/firebase";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { FeatureGate } from "@/src/context/FeatureControlContext";
 import { preloadAllRecentNewsAudio } from "@/src/services/ttsClient";
@@ -62,15 +62,37 @@ export default function HomePage() {
   const [isHeroHidden, setIsHeroHidden] = useState(() => {
     return safeLocalStorage.getItem("homepageHeroHidden") === "true";
   });
-  const [heroConfig, setHeroConfig] = useState<HeroConfig>({
-    enabled: true,
-    type: "youtube",
-    videoUrl: "https://www.youtube.com/watch?v=1La4QzGeaaQ",
-    title: "Sanatan Marga",
-    subtitle: "Nepal's Civilizational Media Network",
-    ctaText: "Latest News",
-    allowUserHide: true,
+  const [heroConfig, setHeroConfig] = useState<HeroConfig>(() => {
+    try {
+      const stored = safeLocalStorage.getItem("sanatan_homepage_settings");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.hero) return parsed.hero;
+      }
+    } catch (e) {}
+    return {
+      enabled: true,
+      type: "youtube",
+      videoUrl: "https://www.youtube.com/watch?v=1La4QzGeaaQ",
+      title: "Sanatan Marga",
+      subtitle: "Nepal's Civilizational Media Network",
+      ctaText: "Latest News",
+      allowUserHide: true,
+    };
   });
+
+  useEffect(() => {
+    const unsub = safeOnSnapshot(doc(db, "settings", "homepage"), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.hero) {
+          setHeroConfig(data.hero);
+          safeLocalStorage.setItem("sanatan_homepage_settings", JSON.stringify(data));
+        }
+      }
+    }, "homepage_settings_live");
+    return () => { if (typeof unsub === "function") unsub(); };
+  }, []);
 
   useEffect(() => {
     const handleHeroVis = () => {
@@ -351,6 +373,8 @@ export default function HomePage() {
 
         if ((snapshot as any)?.homepage?.hero) {
           setHeroConfig((snapshot as any).homepage.hero);
+        } else if ((snapshot as any)?.hero) {
+          setHeroConfig((snapshot as any).hero);
         }
 
         if (snapshot.platformStats) {

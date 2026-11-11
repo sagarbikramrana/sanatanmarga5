@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { 
   Radio, Wifi, Settings, Mic, Calendar, Sparkles, Volume2, ShieldCheck, 
   Plus, Edit2, Trash2, Save, RefreshCw, AlertTriangle, Layers, DollarSign,
-  BarChart3, Play, Pause, CheckCircle2, ArrowRight, BookOpen, Clock, FileText, Check
+  BarChart3, Play, Pause, CheckCircle2, ArrowRight, BookOpen, Clock, FileText, Check, Upload
 } from "lucide-react";
 import AdminLayout from "@/src/components/layout/AdminLayout";
 import { useAuth } from "@/src/lib/auth";
@@ -447,7 +447,26 @@ export default function AdminRadioPage() {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-xs font-bold text-foreground">वैकल्पिक स्ट्रिम स्रोत (Backup Failover Stream URL):</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-foreground">वैकल्पिक स्ट्रिम / अडियो फाइल (Backup Audio / Stream):</label>
+                      <label className="text-[11px] font-bold text-primary hover:underline cursor-pointer flex items-center gap-1">
+                        <Upload size={12} />
+                        <span>स्थानीय अडियो अपलोड</span>
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = URL.createObjectURL(file);
+                              setBackupStreamUrl(url);
+                              toast.success("अडियो फाइल लोड भयो!");
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                     <input
                       type="url"
                       value={backupStreamUrl}

@@ -1767,6 +1767,17 @@ export class SnapshotOS {
       this.snapshotStore["site_config"] = { data: mergedSite, generatedAt: mergedSite.generatedAt };
       this.snapshotStore["settings/site"] = { data: mergedSite, generatedAt: mergedSite.generatedAt };
       uploadSnapshotObject("site_config.json", mergedSite).catch(() => {});
+    } else if (colName === "settings" && (resolvedId === "homepage" || resolvedId === "site_settings" || resolvedId === "homepage_layout")) {
+      ["homepage", "homepage-ne", "homepage-en"].forEach(modKey => {
+        if (this.snapshotStore[modKey]?.data) {
+          const current = this.snapshotStore[modKey].data;
+          if (record.hero) current.hero = { ...(current.hero || {}), ...record.hero };
+          if (record.sections) current.layout = record.sections;
+          if (record.pinnedHeadlines) current.announcements = record.pinnedHeadlines;
+          this.snapshotStore[modKey].generatedAt = new Date().toISOString();
+        }
+      });
+      uploadSnapshotObject("homepage.json", this.snapshotStore["homepage"]?.data || record).catch(() => {});
     }
 
     this.persistDynamicCollectionsToR2();

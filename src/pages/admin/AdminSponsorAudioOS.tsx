@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { 
   Volume2, Plus, Play, Pause, Power, Trash2, Edit3, ShieldCheck, 
-  BarChart3, Radio, Sparkles, AlertCircle, CheckCircle2, Clock, Calendar, Users, Eye
+  BarChart3, Radio, Sparkles, AlertCircle, CheckCircle2, Clock, Calendar, Users, Eye,
+  Upload
 } from "lucide-react";
+import AdminLayout from "@/src/components/layout/AdminLayout";
+import { toast } from "sonner";
 import { 
   sponsorAudioRegistry, 
   SponsorAudioCampaign 
@@ -126,7 +129,8 @@ export default function AdminSponsorAudioOS() {
   const totalImpressions = campaigns.reduce((acc, c) => acc + (c.impressionsCount || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 md:p-8 space-y-6">
+    <AdminLayout>
+      <div className="p-4 md:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
@@ -349,14 +353,37 @@ export default function AdminSponsorAudioOS() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1">अडियो URL (MP3 / WAV / Sound Stream)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold">अडियो फाइल / URL (MP3 / WAV / Sound Stream)</label>
+                  <label className="text-[11px] font-bold text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1">
+                    <Upload size={12} />
+                    <span>फाइल अपलोड गर्नुहोस्</span>
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = URL.createObjectURL(file);
+                          setFormData(prev => ({
+                            ...prev,
+                            audioUrl: url,
+                            audioTitle: prev.audioTitle || file.name.replace(/\.[^/.]+$/, "")
+                          }));
+                          toast.success("अडियो फाइल लोड भयो!");
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
                 <input
-                  type="url"
+                  type="text"
                   required
                   value={formData.audioUrl}
                   onChange={(e) => setFormData({ ...formData, audioUrl: e.target.value })}
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm"
-                  placeholder="https://..."
+                  placeholder="https://... वा माथि 'फाइल अपलोड' थिच्नुहोस्"
                 />
               </div>
 
@@ -480,6 +507,7 @@ export default function AdminSponsorAudioOS() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

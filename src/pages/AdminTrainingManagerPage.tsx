@@ -283,7 +283,7 @@ export default function AdminTrainingManagerPage() {
                       cert.status === "expiring_soon" ? "bg-amber-200 text-amber-800" :
                       "bg-emerald-200 text-emerald-800"
                     }`}>
-                      {cert.status.replace("_", " ")}
+                      {(cert.status || "active").replace("_", " ")}
                     </span>
                   </div>
                   <div className="text-[11px] opacity-80 flex items-center justify-between">
@@ -379,7 +379,7 @@ export default function AdminTrainingManagerPage() {
                           staff.competencyLevel === "L2_Practitioner" ? "bg-emerald-100 text-emerald-800" :
                           "bg-stone-100 text-stone-700"
                         }`}>
-                          {staff.competencyLevel.replace("_", " ")}
+                          {(staff.competencyLevel || "L0_Standard").replace("_", " ")}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center font-mono font-semibold text-stone-800">

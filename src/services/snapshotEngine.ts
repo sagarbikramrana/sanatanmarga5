@@ -678,9 +678,23 @@ class SnapshotEngineService {
     let trendingNews = this.enrichArticles(snap.trendingNews || []);
     let videoNews = (snap.videoNews || []).filter(a => !!a.videoUrl);
 
+    // Always merge newly created and updated dynamic articles at the top of feeds
+    const dynamicArts = this.getDynamicArticles() || [];
+    if (dynamicArts.length > 0) {
+      const existingLatestIds = new Set(latestNews.map(a => a.id));
+      const newToLatest = dynamicArts.filter(a => !existingLatestIds.has(a.id));
+      if (newToLatest.length > 0) {
+        latestNews = [...this.enrichArticles(newToLatest), ...latestNews];
+      }
+      const existingFeaturedIds = new Set(featuredArticles.map(a => a.id));
+      const newToFeatured = dynamicArts.filter(a => a.isFeatured && !existingFeaturedIds.has(a.id));
+      if (newToFeatured.length > 0) {
+        featuredArticles = [...this.enrichArticles(newToFeatured), ...featuredArticles];
+      }
+    }
+
     // If snapshot has 0 articles, automatically fill with resilient backup dataset
     if (latestNews.length === 0 && featuredArticles.length === 0) {
-      const dynamicArts = this.getDynamicArticles() || [];
       const fallbackList = this.enrichArticles([...dynamicArts, ...BACKUP_ARTICLES]);
       latestNews = fallbackList.slice(0, 30);
       featuredArticles = fallbackList.filter(a => a.isFeatured).slice(0, 5);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  Home,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -216,14 +217,14 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth 
       {/* Backdrop overlay for mobile drawer */}
       {isMobile && !isCollapsed && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-35 transition-opacity animate-in fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[59] transition-opacity animate-in fade-in"
           onClick={() => setIsCollapsed(true)}
           aria-label="Close menu backdrop"
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 h-screen z-40 bg-card border-r border-border-theme transition-all duration-300 flex flex-col shadow-lg ${isMobile
+        className={`fixed top-0 left-0 h-screen z-[60] bg-card border-r border-border-theme transition-all duration-300 flex flex-col shadow-lg ${isMobile
           ? isCollapsed ? "-translate-x-full" : "translate-x-0 w-72 shadow-2xl"
           : isCollapsed ? "w-20" : "w-68"
           }`}
@@ -277,6 +278,33 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, windowWidth 
             </>
           )}
         </div>
+
+        {/* Public Home Portal Link */}
+        {(!isCollapsed || isMobile) ? (
+          <div className="px-3 pt-3">
+            <Link
+              to="/"
+              className="w-full px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold flex items-center justify-between transition-colors group cursor-pointer"
+              title="गृहपृष्ठ हेर्नुहोस् (Go to Public Home)"
+            >
+              <span className="flex items-center gap-2">
+                <Home size={15} className="group-hover:scale-110 transition-transform" />
+                <span>गृहपृष्ठ (Public Home)</span>
+              </span>
+              <ChevronRight size={13} className="opacity-70 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        ) : (
+          <div className="px-2 pt-3 flex justify-center">
+            <Link
+              to="/"
+              className="w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 flex items-center justify-center transition-colors cursor-pointer"
+              title="गृहपृष्ठ (Home)"
+            >
+              <Home size={18} />
+            </Link>
+          </div>
+        )}
 
         {/* Command Palette Quick Trigger Button */}
         {(!isCollapsed || isMobile) && (

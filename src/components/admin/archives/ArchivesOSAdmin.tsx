@@ -3,7 +3,7 @@ import {
   Archive, Plus, Search, Edit3, Trash2, CheckCircle2, 
   FileText, Link2, RefreshCw, X, Save, Eye, Sparkles, Filter, 
   ExternalLink, AlertTriangle, ShieldCheck, Download, History,
-  Scroll, Cpu, Check, ArrowRight, Layers
+  Scroll, Cpu, Check, ArrowRight, Layers, Upload
 } from "lucide-react";
 import { 
   ArchiveRecord, 
@@ -672,12 +672,35 @@ export default function ArchivesOSAdmin() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-muted-text">दस्तावेज लिङ्क (Document URL)</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-muted-text">दस्तावेज लिङ्क / फाइल (Document URL / Upload)</label>
+                        <label className="text-[11px] font-bold text-amber-500 hover:text-amber-400 cursor-pointer flex items-center gap-1">
+                          <Upload size={12} />
+                          <span>फाइल अपलोड</span>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*,.txt"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const url = URL.createObjectURL(file);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  documentUrl: url,
+                                  titleNepali: prev.titleNepali || file.name.replace(/\.[^/.]+$/, "")
+                                }));
+                                toast.success("अभिलेख दस्तावेज फाइल लोड भयो!");
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
                       <input
                         type="text"
                         value={formData.documentUrl || ""}
                         onChange={e => setFormData({ ...formData, documentUrl: e.target.value })}
-                        placeholder="https://..."
+                        placeholder="https://... वा माथि फाइल अपलोड छान्नुहोस्"
                         className="w-full p-2.5 rounded-xl bg-card border border-border-theme text-foreground focus:outline-none"
                       />
                     </div>

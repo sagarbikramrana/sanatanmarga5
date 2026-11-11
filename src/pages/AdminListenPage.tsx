@@ -12,7 +12,8 @@ import {
   Sparkles,
   BookOpen,
   Mic2,
-  ListMusic
+  ListMusic,
+  Upload
 } from "lucide-react";
 import AdminLayout from "@/src/components/layout/AdminLayout";
 import { useLanguage } from "@/src/context/LanguageContext";
@@ -420,6 +421,39 @@ export default function AdminListenPage() {
                     value={newEpisode.linkedGranthaId}
                     onChange={e => setNewEpisode({ ...newEpisode, linkedGranthaId: e.target.value })}
                     placeholder="e.g., grantha-isha-upanishad"
+                    className="w-full px-3 py-2 rounded-lg bg-surface-interactive border border-border-theme text-foreground font-mono"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-muted-text">अडियो मिडिया (Audio URL / File Upload)</label>
+                    <label className="text-[11px] font-bold text-primary hover:underline cursor-pointer flex items-center gap-1">
+                      <Upload size={12} />
+                      <span>अडियो फाइल अपलोड</span>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const url = URL.createObjectURL(file);
+                            setNewEpisode(prev => ({
+                              ...prev,
+                              audioUrl: url,
+                              titleNe: prev.titleNe || file.name.replace(/\.[^/.]+$/, "")
+                            }));
+                            toast.success("अडियो फाइल लोड भयो!");
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    value={newEpisode.audioUrl}
+                    onChange={e => setNewEpisode({ ...newEpisode, audioUrl: e.target.value })}
+                    placeholder="https://actions.google.com/sounds/v1/ambiences/morning_birds.ogg"
                     className="w-full px-3 py-2 rounded-lg bg-surface-interactive border border-border-theme text-foreground font-mono"
                   />
                 </div>

@@ -88,6 +88,16 @@ export const chautariStore = {
   },
 
   // --- COMMENTS ---
+  getAllLocalComments(): CommunityComment[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem(COMMENTS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
   getLocalComments(postId: string): CommunityComment[] {
     if (typeof window === "undefined") return [];
     try {

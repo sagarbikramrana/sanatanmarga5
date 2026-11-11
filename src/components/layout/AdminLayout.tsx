@@ -118,7 +118,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Modern Sliding Menu Toggle Button (Visible whenever menu is collapsed on any screen) */}
         {isCollapsed && (
-          <div className="fixed top-3 left-3 z-[50] flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed top-3 left-3 z-[65] flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
             <button 
               onClick={() => setIsCollapsed(false)}
               className="px-3 py-2 bg-card/95 backdrop-blur-md text-card-foreground rounded-xl shadow-xl hover:scale-105 active:scale-95 hover:border-primary/50 transition-all border border-border-theme cursor-pointer flex items-center gap-2 group"
@@ -131,17 +131,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         )}
 
-        {/* Top-Right Floating Controls (Theme Toggle & Sync Status) */}
-        <div className="fixed top-3 right-4 z-[50] flex items-center gap-2">
+        {/* Top-Right Floating Controls (Sync Status) */}
+        <div className="fixed top-3 right-4 z-[65] flex items-center gap-2">
           <PendingSyncBadge />
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 bg-card/95 backdrop-blur-md text-card-foreground rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all border border-border-theme cursor-pointer"
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            aria-label="Toggle Theme"
-          >
-            {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-muted-text hover:text-foreground" />}
-          </button>
         </div>
 
         {/* Main Content */}

@@ -295,16 +295,16 @@ export default function AdminLive() {
       <div className="space-y-6 pb-20 font-sans">
         
         {/* HEADER & CONTROLS */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-900/90 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border-theme rounded-2xl p-5 shadow-sm">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-xs font-black uppercase tracking-wider text-red-400">
+              <span className="text-xs font-black uppercase tracking-wider text-red-500">
                 SANATANMARGA LIVE MEDIA OS v3
               </span>
             </div>
-            <h1 className="text-2xl font-black text-white">प्रत्यक्ष प्रसारण तथा मिडिया व्यवस्थापन</h1>
-            <p className="text-xs text-zinc-400">
+            <h1 className="text-2xl font-black text-card-foreground">प्रत्यक्ष प्रसारण तथा मिडिया व्यवस्थापन</h1>
+            <p className="text-xs text-muted-text">
               Live Broadcasts, Realtime Chat, Moderation, Revenue Tickers & 77 District Continuity
             </p>
           </div>
@@ -368,7 +368,7 @@ export default function AdminLive() {
 
             <button
               onClick={loadData}
-              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-muted-area hover:bg-muted-area/80 text-muted-text hover:text-foreground border border-border-theme transition-colors cursor-pointer"
               title="रिफ्रेस गर्नुहोस्"
             >
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
@@ -377,7 +377,7 @@ export default function AdminLive() {
         </div>
 
         {/* 10-TAB NAVIGATION */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-zinc-800 custom-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-border-theme custom-scrollbar">
           {[
             { id: "overview", label: "अवलोकन (Overview)", icon: Tv },
             { id: "streams", label: `प्रसारणहरू (${allVideos.length})`, icon: Video },
@@ -931,13 +931,13 @@ export default function AdminLive() {
         {/* ================= MODAL: ADD / EDIT STREAM ================= */}
         {showAddModal && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                <h3 className="font-bold text-white text-base flex items-center gap-2">
+            <div className="bg-card text-card-foreground border border-border-theme rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-border-theme pb-3">
+                <h3 className="font-bold text-card-foreground text-base flex items-center gap-2">
                   <Video size={18} className="text-red-500" />
                   {editingVideo ? "प्रत्यक्ष प्रसारण सम्पादन" : "नयाँ प्रत्यक्ष प्रसारण थप्नुहोस्"}
                 </h3>
-                <button onClick={() => setShowAddModal(false)} className="text-zinc-400 hover:text-white">
+                <button onClick={() => setShowAddModal(false)} className="text-muted-text hover:text-foreground">
                   <XCircle size={18} />
                 </button>
               </div>
