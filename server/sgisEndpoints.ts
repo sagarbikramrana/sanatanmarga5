@@ -308,6 +308,16 @@ Return ONLY a valid JSON object matching EXACTLY this structure:
       return res.status(502).json({
         success: false,
         error: "पाण्डुलिपिबाट OCR निष्कर्षण हुन सकेन। कृपया इन्टरनेट जडान, API Key वा फाइल ढाँचा जाँच गरी पुनः प्रयास गर्नुहोस्। (OCR_EXTRACTION_FAILED)",
+        errorDetails: {
+          code: 502,
+          title: "OCR निष्कर्षण असफल (502 Processing Error)",
+          reason: "एआई मोडल वा निष्कर्षण इन्जिनले पाण्डुलिपिको पाठ पढ्न सकेन वा समय समाप्त भयो।",
+          solutions: [
+            "PDF लाई १-५ पृष्ठका साना खण्डहरूमा विभाजन गरी पुनः प्रयास गर्नुहोस्।",
+            "छविको गुणस्तर, स्पष्टता वा प्रकाश जाँच गर्नुहोस्।",
+            "केही सेकेन्ड पर्खिएर पुनः प्रयास गर्नुहोस्।"
+          ]
+        },
         accessionNumber
       });
     } catch (err: any) {

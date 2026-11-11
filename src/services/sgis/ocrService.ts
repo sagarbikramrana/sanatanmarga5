@@ -35,6 +35,8 @@ export class SgisOcrService {
         success: false,
         error: response.status === 413 
           ? "फाइल धेरै ठूलो छ (413 Payload Too Large)"
+          : (response.status === 502 || response.status === 504)
+          ? `गेटवे वा एआई सेवाबाट समयमै प्रतिक्रिया आएन (${response.status} Gateway Timeout)`
           : `Invalid server response (${response.status})`,
         errorDetails: response.status === 413 ? {
           code: 413,
@@ -46,6 +48,16 @@ export class SgisOcrService {
             "आवश्यक भए छवि संकुचन (Image Compression / Resize) प्रयोग गर्नुहोस्।"
           ],
           note: "३०० DPI सिफारिस गरिएको गुणस्तर मात्र हो, अनिवार्य आवश्यकता होइन। पुराना वा जीर्ण पाण्डुलिपिहरू पनि Best Possible Recovery रणनीतिद्वारा प्रशोधन गरिन्छ।"
+        } : (response.status === 502 || response.status === 504) ? {
+          code: response.status,
+          title: `गेटवे समय समाप्त / त्रुटि (${response.status} Gateway Timeout)`,
+          reason: "पाण्डुलिपि प्रशोधन गर्न एआई मोडेल वा सर्भरले तोकिएको समयभन्दा धेरै समय लियो। बहुपृष्ठ वा उच्च-रिजोल्युसन स्क्यानमा यो हुन सक्छ।",
+          solutions: [
+            "PDF लाई १-५ पृष्ठका साना खण्डहरूमा विभाजन गरी अपलोड गर्नुहोस्।",
+            "तस्विरको रिजोल्युसन धेरै उच्च भए हल्का संकुचित (Compress/Resize) गर्नुहोस्।",
+            "केही सेकेन्ड पर्खिएर पुनः प्रयास (Retry) गर्नुहोस्।"
+          ],
+          note: "डिजिटल अभिलेखीकरणको लागि १ देखि ५ पृष्ठ एकै पटक प्रशोधन गर्दा सबैभन्दा भरपर्दो नतिजा प्राप्त हुन्छ।"
         } : undefined,
         accessionNumber: "",
         detectedScript: "",
@@ -92,6 +104,20 @@ export class SgisOcrService {
               "आवश्यक भए छवि संकुचन (Image Compression) प्रयोग गर्नुहोस्।"
             ],
             note: "३०० DPI सिफारिस गरिएको गुणस्तर मात्र हो, अनिवार्य आवश्यकता होइन। पुराना वा जीर्ण पाण्डुलिपिहरू पनि Best Possible Recovery रणनीतिद्वारा रिकभरी गरिन्छ।"
+          };
+        }
+
+        if ((response.status === 502 || response.status === 504) && !data.errorDetails) {
+          data.errorDetails = {
+            code: response.status,
+            title: `गेटवे समय समाप्त / त्रुटि (${response.status} Gateway Timeout)`,
+            reason: data.error || "पाण्डुलिपि प्रशोधन गर्न एआई मोडेल वा सर्भरले तोकिएको समयभन्दा धेरै समय लियो।",
+            solutions: [
+              "PDF लाई १-५ पृष्ठका साना खण्डहरूमा विभाजन गरी अपलोड गर्नुहोस्।",
+              "तस्विरको रिजोल्युसन धेरै उच्च भए हल्का संकुचित (Compress/Resize) गर्नुहोस्।",
+              "केही सेकेन्ड पर्खिएर पुनः प्रयास (Retry) गर्नुहोस्।"
+            ],
+            note: "डिजिटल अभिलेखीकरणको लागि १ देखि ५ पृष्ठ एकै पटक प्रशोधन गर्दा सबैभन्दा भरपर्दो नतिजा प्राप्त हुन्छ।"
           };
         }
         const customErr: any = new Error(data.error || `SGIS OCR Server Error (${response.status})`);

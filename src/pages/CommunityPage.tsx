@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { continuityEngine } from "@/src/lib/continuityEngine";
 import { useAuth } from "@/src/lib/auth";
 import { CommunityPost } from "@/src/types";
+import { db, collection, query, orderBy, safeOnSnapshot } from "@/src/lib/firebase";
 import Header from "@/src/components/layout/Header";
 import Footer from "@/src/components/layout/Footer";
 import SEOHead from "@/src/components/common/SEOHead";
@@ -91,6 +92,15 @@ export default function CommunityPage() {
       }
     };
 
+    // Live real-time Firestore listener with safe circuit-breaker handling
+    const q = query(collection(db, "communityPosts"), orderBy("createdAt", "desc"));
+    const unsubFirestore = safeOnSnapshot(q, (snapshot) => {
+      if (!isMounted) return;
+      const remote = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as CommunityPost[];
+      setPosts(combinePosts(remote));
+      setLoading(false);
+    }, "community_posts_feed");
+
     const handleLocalUpdate = () => {
       if (isMounted) {
         setPosts(prev => combinePosts(prev));
@@ -105,6 +115,7 @@ export default function CommunityPage() {
     loadFeed();
     return () => {
       isMounted = false;
+      if (unsubFirestore) unsubFirestore();
       window.removeEventListener("chautari-post-created", handleLocalUpdate);
       window.removeEventListener("chautari-post-deleted", handleLocalUpdate);
       window.removeEventListener("chautari-vote-changed", handleLocalUpdate);

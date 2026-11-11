@@ -4451,6 +4451,11 @@ ${verifiedSummaryText}
       }
 
       delete dashboardCache[uid];
+      sos.snapshotStore[`profile_${uid}`] = {
+        data: { success: true, profile: payload, generatedAt: new Date().toISOString() },
+        generatedAt: new Date().toISOString()
+      };
+      sos.queueRebuild("user_profile");
       res.json({ success: true, message: "Profile updated successfully", data: payload });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -7188,7 +7193,7 @@ ${verifiedSummaryText}
   });
 
   // 11. Folder-structured Snapshot Getters (Multi-depth routes, e.g., /api/cache/comments/article_123.json or /api/cache/chautari/thread/123.json)
-  app.get("/api/cache/:folder/:subfolder/:file", (req, res) => {
+  app.get("/api/cache/:folder/:subfolder/:file", async (req, res) => {
     const { folder, subfolder, file } = req.params;
     const cleanFile = file.replace(".json", "");
     const cacheKey = `${folder}/${subfolder}/${cleanFile}`;
@@ -7202,10 +7207,38 @@ ${verifiedSummaryText}
       return res.json(sos.snapshotStore[`${folder}/${subfolder}_${cleanFile}`].data);
     }
 
+    if (folder === "chautari" && subfolder === "thread") {
+      try {
+        const threadId = cleanFile;
+        let post: any = null;
+        let comments: any[] = [];
+        if (adminDb) {
+          const pSnap = await adminDb.collection("communityPosts").doc(threadId).get().catch(() => null);
+          if (pSnap && pSnap.exists) {
+            post = { id: pSnap.id, ...pSnap.data() };
+          }
+          const cSnap = await adminDb.collection("communityComments").where("postId", "==", threadId).orderBy("createdAt", "asc").get().catch(async () => {
+            return adminDb.collection("communityComments").where("postId", "==", threadId).get().catch(() => null);
+          });
+          if (cSnap && cSnap.docs) {
+            comments = cSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+          }
+        }
+        if (!post) {
+          post = sos.getDynamicDocument("communityPosts", threadId) || sos.getDynamicDocument("community_posts", threadId);
+        }
+        if (post) {
+          const payload = { success: true, post, comments, generatedAt: new Date().toISOString() };
+          sos.snapshotStore[cacheKey] = { data: payload, generatedAt: new Date().toISOString() };
+          return res.json(payload);
+        }
+      } catch (err: any) {}
+    }
+
     return res.status(404).json({ error: `Deep snapshot '${cacheKey}' not found in cache` });
   });
 
-  app.get("/api/cache/:folder/:file", (req, res) => {
+  app.get("/api/cache/:folder/:file", async (req, res) => {
     const { folder, file } = req.params;
     const cleanFile = file.replace(".json", "");
     const cacheKey = `${folder}/${cleanFile}`;
@@ -7216,11 +7249,53 @@ ${verifiedSummaryText}
       return res.json(sos.snapshotStore[cacheKey].data);
     }
 
+    if (folder === "chautari") {
+      try {
+        let posts: any[] = [];
+        if (adminDb) {
+          const snap = await adminDb.collection("communityPosts").orderBy("createdAt", "desc").limit(50).get().catch(async () => {
+            return adminDb.collection("communityPosts").limit(50).get().catch(() => null);
+          });
+          if (snap && snap.docs) {
+            posts = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+          }
+        }
+        if (posts.length === 0) {
+          const dynPosts = sos.getDynamicCollection("communityPosts") || sos.getDynamicCollection("community_posts") || [];
+          posts = dynPosts;
+        }
+
+        // Sorting
+        if (cleanFile === "trending" || cleanFile === "popular") {
+          posts.sort((a, b) => ((b.upvotes || 0) - (b.downvotes || 0)) - ((a.upvotes || 0) - (a.downvotes || 0)));
+        } else {
+          posts.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        }
+
+        const payload = { success: true, posts, generatedAt: new Date().toISOString() };
+        sos.snapshotStore[cacheKey] = { data: payload, generatedAt: new Date().toISOString() };
+        return res.json(payload);
+      } catch (err: any) {
+        return res.json({ success: true, posts: [], generatedAt: new Date().toISOString() });
+      }
+    }
+
     if (folder === "article" || folder === "articles") {
-      const artSnap = sos.snapshotStore[`article_${cleanFile}`]?.data
-        || sos.dynamicArticles?.find((a: any) => a.id === cleanFile);
+      let artSnap = sos.snapshotStore[`article_${cleanFile}`]?.data
+        || sos.dynamicArticles?.find((a: any) => a.id === cleanFile)
+        || sos.getDynamicDocument("articles", cleanFile);
+      if (!artSnap && adminDb) {
+        try {
+          const snap = await adminDb.collection("articles").doc(cleanFile).get();
+          if (snap.exists) {
+            artSnap = { id: snap.id, ...snap.data() };
+          }
+        } catch (e) {}
+      }
       if (artSnap) {
-        return res.json(artSnap.article ? artSnap : { generatedAt: new Date().toISOString(), article: artSnap });
+        const payload = artSnap.article ? artSnap : { generatedAt: new Date().toISOString(), article: artSnap };
+        sos.snapshotStore[`article_${cleanFile}`] = { data: payload, generatedAt: new Date().toISOString() };
+        return res.json(payload);
       }
     }
 

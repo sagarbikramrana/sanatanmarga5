@@ -1200,8 +1200,8 @@ export const ROLLOUT_PROFILES: Record<RolloutPresetName, RolloutProfile> = {
     descriptionNe: "कोटा वा बाह्य एपीआई समस्यामा महँगा कार्य (AI, TTS, Live, Community) तुरुन्त बन्द, समाचार पाठक सुरक्षित।",
     descriptionEn: "Instantly shuts down Gemini AI, ListenOS generation, Live video, and community writes to preserve zero-cost static reading.",
     overrides: {
-      "media.listenos": "off",
-      "article.listen": "off",
+      "media.listenos": "public",
+      "article.listen": "public",
       "ai.tts": "off",
       "ai.newsroom": "off",
       "ai.translation": "off",

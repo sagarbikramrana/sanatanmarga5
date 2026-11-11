@@ -277,7 +277,7 @@ export async function getHumanNepaliAudio(
       saveToIndexedDB(cacheKey, blob);
 
       return {
-        audioUrl: data.audioUrl || audioUrl,
+        audioUrl,
         fromCache: data.fromCache || false,
         mimeType: data.mimeType || "audio/wav",
         cacheKey

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, serverTimestamp } from "@/src/lib/firebase";
+import { collection, addDoc, doc, serverTimestamp } from "@/src/lib/firebase";
 import { db } from "@/src/lib/firebase";
 import { useAuth } from "@/src/lib/auth";
 import { X, Image as ImageIcon, Send, AlertCircle } from "lucide-react";
@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import NepaliInput from "@/src/components/ui/NepaliInput";
 
 import { toast } from "sonner";
-import { addDocWithQueue } from "@/src/lib/offlineQueue";
+import { addDocWithQueue, setDocWithQueue } from "@/src/lib/offlineQueue";
 import { broadcastNotification } from "@/src/lib/notifications";
 
 import { chautariStore } from "@/src/utils/chautariStore";
@@ -119,11 +119,19 @@ export default function CreatePostModal({ isOpen, onClose, initialData }: Create
 
       chautariStore.addLocalPost(postPayload as any);
 
-      await addDocWithQueue("communityPosts", {
+      await setDocWithQueue(doc(db, "communityPosts", postId), {
         ...postPayload,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("snapshot-rebuilt", {
+            detail: { collection: "communityPosts", docId: postId, timestamp: Date.now() }
+          })
+        );
+      }
       
       toast.success("Post submitted!");
       setTitle("");
