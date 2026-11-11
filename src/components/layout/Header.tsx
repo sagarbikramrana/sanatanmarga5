@@ -295,6 +295,9 @@ export default function Header() {
               </div>
               {activeMegaMenu === 'knowledge' && (
                 <div className="absolute top-full left-0 w-[520px] bg-card dark:bg-slate-950 border border-border-theme dark:border-zinc-800 rounded-2xl shadow-2xl p-6 z-50 grid grid-cols-2 gap-3 text-left normal-case">
+                  <Link to="/ask-sanatan" className="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2 border border-amber-500/30 col-span-2">
+                    <Sparkles size={16} className="text-amber-500 animate-pulse" /> सोध्नुहोस् (Ask Sanatan AI)
+                  </Link>
                   <Link to="/knowledge" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-primary flex items-center gap-2">
                     <BookOpen size={16} /> Knowledge Graph
                   </Link>
@@ -443,6 +446,16 @@ export default function Header() {
                 <span>रेडियो</span>
               </Link>
             )}
+
+            {/* 7.6 सोध्नुहोस् (Ask Sanatan AI) */}
+            <Link
+              to="/ask-sanatan"
+              className="py-2 px-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 rounded-xl transition-all flex items-center gap-1.5 font-black shadow-sm"
+              title="Ask Sanatan Civilizational AI"
+            >
+              <Sparkles size={14} className="text-amber-500 animate-pulse" />
+              <span>सोध्नुहोस्</span>
+            </Link>
 
             {/* 7.6 एडमिन ड्यासबोर्ड (Direct Admin shortcut for Admin users) */}
             {user && ['super_admin', 'admin', 'chief_editor', 'editor'].includes(user?.role || '') && (
@@ -607,25 +620,28 @@ export default function Header() {
 
               <div className="flex flex-col gap-2">
                 <Link to="/latest" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">1. समाचार (Latest News)</Link>
+                <Link to="/ask-sanatan" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                  <Sparkles size={18} className="text-amber-500 animate-pulse" /> 2. सोध्नुहोस् (Ask Sanatan AI)
+                </Link>
                 <Link to="/live" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-red-600 dark:text-red-400 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> 2. प्रत्यक्ष भिडियो (Live Streaming)
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> 3. प्रत्यक्ष भिडियो (Live Streaming)
                 </Link>
                 <Link to="/radio" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                  <Radio size={18} className="animate-pulse" /> 3. सनातन रेडियो (Sanatan Radio 24/7)
+                  <Radio size={18} className="animate-pulse" /> 4. सनातन रेडियो (Sanatan Radio 24/7)
                 </Link>
-                <Link to="/knowledge" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">4. ज्ञानकोष (Knowledge Base)</Link>
-                <Link to="/archives" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">5. ऐतिहासिक अभिलेख (ArchivesOS)</Link>
-                <Link to="/academy" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">6. सनातन अकादेमी (Academy & Courses)</Link>
+                <Link to="/knowledge" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">5. ज्ञानकोष (Knowledge Base)</Link>
+                <Link to="/archives" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">6. ऐतिहासिक अभिलेख (ArchivesOS)</Link>
+                <Link to="/academy" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">7. सनातन अकादेमी (Academy & Courses)</Link>
                 <Link to="/training" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                  <Award size={18} /> 7. तालिम तथा प्रमाणीकरण (Training & Certifications)
+                  <Award size={18} /> 8. तालिम तथा प्रमाणीकरण (Training & Certifications)
                 </Link>
-                <Link to="/verify-certificate" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-emerald-600 dark:text-emerald-400">8. प्रमाणपत्र प्रमाणीकरण (Verify Certificate)</Link>
-                <Link to="/community" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">8. चौतारी समुदाय (Community)</Link>
-                <Link to="/events" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">9. कार्यक्रमहरू (Events & Festivals)</Link>
-                <Link to="/store" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">10. सनातन स्टोर र सदस्यता (Store & Membership)</Link>
-                <Link to="/timeline" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">11. कालक्रम तथा समयरेखा (Timeline)</Link>
-                <Link to="/nepal-hub" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">12. नेपाल हब (77 Districts)</Link>
-                <Link to="/about" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">13. हाम्रोबारे र सुशासन (About & Transparency)</Link>
+                <Link to="/verify-certificate" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-emerald-600 dark:text-emerald-400">9. प्रमाणपत्र प्रमाणीकरण (Verify Certificate)</Link>
+                <Link to="/community" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">10. चौतारी समुदाय (Community)</Link>
+                <Link to="/events" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">11. कार्यक्रमहरू (Events & Festivals)</Link>
+                <Link to="/store" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">12. सनातन स्टोर र सदस्यता (Store & Membership)</Link>
+                <Link to="/timeline" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">13. कालक्रम तथा समयरेखा (Timeline)</Link>
+                <Link to="/nepal-hub" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">14. नेपाल हब (77 Districts)</Link>
+                <Link to="/about" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-2 border-b border-border-theme dark:border-zinc-900 text-foreground dark:text-zinc-200">15. हाम्रोबारे र सुशासन (About & Transparency)</Link>
                 
                 {user && ['super_admin', 'admin', 'chief_editor', 'editor'].includes(user?.role || '') && (
                   <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-base font-bold py-3 mt-2 border border-purple-500/40 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl px-4 flex items-center gap-2 shadow-md">

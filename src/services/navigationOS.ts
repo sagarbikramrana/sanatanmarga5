@@ -1662,8 +1662,7 @@ export function classifyRoute(routePath: string): RouteClassificationType {
     routePath === "/sanatan-social" ||
     routePath === "/daily-briefing" ||
     routePath === "/story-evolution" ||
-    routePath === "/media" ||
-    routePath === "/ask-sanatan"
+    routePath === "/media"
   ) {
     return "non-navigation";
   }
@@ -1784,6 +1783,7 @@ export const ALL_REGISTERED_APP_ROUTES: string[] = [
   "/archives",
   "/archives/:id",
   "/article/:id",
+  "/ask",
   "/ask-sanatan",
   "/blog",
   "/blog/:slug",

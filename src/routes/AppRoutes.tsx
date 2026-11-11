@@ -449,6 +449,7 @@ export default function AppRoutes() {
             <Pages.ArchivesPage />
           </RouteFeatureGuard>
         } />
+        <Route path="/ask" element={<Navigate to="/ask-sanatan" replace />} />
         <Route path="/ask-sanatan" element={<Pages.AskSanatanPage />} />
         <Route path="/membership" element={
           <RouteFeatureGuard feature="revenue.membership">

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, Sparkles } from "lucide-react";
 import { useAuth } from "@/src/lib/auth";
 import LogoImage from "@/src/components/ui/LogoImage";
 import { useTheme } from "@/src/components/StyleProvider";
@@ -59,6 +59,7 @@ export default function Footer() {
           <div className="flex flex-col gap-4">
             <h3 className="text-sm font-bold border-l-4 border-amber-500 pl-2.5 uppercase tracking-tight">ज्ञान तथा सम्पदा</h3>
             <ul className="flex flex-col gap-2.5 text-xs font-bold text-muted-text">
+              <li><Link to="/ask-sanatan" className="text-amber-500 font-bold hover:underline transition-colors flex items-center gap-1.5"><Sparkles size={13} className="text-amber-500" /> सोध्नुहोस् (Ask Sanatan AI)</Link></li>
               <li><Link to="/knowledge" className="hover:text-primary transition-colors">ज्ञानकोष (Knowledge Base)</Link></li>
               <li><Link to="/archives" className="hover:text-primary transition-colors">अभिलेख (ArchivesOS)</Link></li>
               <li><Link to="/timeline" className="hover:text-primary transition-colors">कालक्रम (Timeline)</Link></li>
