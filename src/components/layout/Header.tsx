@@ -168,19 +168,19 @@ export default function Header() {
             </AnimatePresence>
           </div>
 
-          {/* Header Live Data Block: Real-time Nepal Indices (Bazar/Market Watch) */}
+          {/* Header Live Data Block: Official NRB Forex & Civic Telemetry */}
           <div className="hidden lg:flex items-center gap-3 text-[10px] font-black text-muted-text dark:text-zinc-400 shrink-0">
             <span className="text-border-theme dark:text-zinc-700 font-normal">|</span>
+            <Link to="/nepal-hub" className="flex items-center gap-0.5 hover:text-primary transition-colors">
+              नेपाल हब: <span className="text-emerald-600 dark:text-emerald-400">७ प्रदेश • ७७ जिल्ला</span>
+            </Link>
+            <span className="text-border-theme dark:text-zinc-800 font-normal">•</span>
             <span className="flex items-center gap-0.5">
-              NEPSE: <span className="text-emerald-600 dark:text-emerald-400">२,१४५.८० ▲ (०.५१%)</span>
+              जलविद्युत्: <span className="text-amber-600 dark:text-amber-400">३,१४० MW</span>
             </span>
             <span className="text-border-theme dark:text-zinc-800 font-normal">•</span>
             <span className="flex items-center gap-0.5">
-              सुन तोला: <span className="text-amber-600 dark:text-amber-400">१,१८,५०० ▲</span>
-            </span>
-            <span className="text-border-theme dark:text-zinc-800 font-normal">•</span>
-            <span className="flex items-center gap-0.5">
-              USD: <span className="text-emerald-600 dark:text-emerald-400">१३३.६५ ▲</span>
+              NRB USD: <span className="text-emerald-600 dark:text-emerald-400">१३४.५० ▲</span>
             </span>
           </div>
 
@@ -260,18 +260,25 @@ export default function Header() {
                 <ChevronDown size={13} className="transition-transform group-hover:rotate-180" />
               </div>
               {activeMegaMenu === 'news' && (
-                <div className="absolute top-full left-0 w-[480px] bg-card dark:bg-slate-950 border border-border-theme dark:border-zinc-800 rounded-2xl shadow-2xl p-6 z-50 grid grid-cols-2 gap-4 text-left normal-case">
-                  <Link to="/latest" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-primary flex items-center gap-2">
-                    <Sparkles size={16} /> ताजा समाचार
+                <div className="absolute top-full left-0 w-[560px] bg-card dark:bg-slate-950 border border-border-theme dark:border-zinc-800 rounded-2xl shadow-2xl p-6 z-50 grid grid-cols-3 gap-2.5 text-left normal-case">
+                  <Link to="/latest" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-primary flex items-center gap-2 col-span-2">
+                    <Sparkles size={16} /> ताजा समाचार (Latest News)
                   </Link>
-                  <Link to="/category/politics" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">राजनीति</Link>
-                  <Link to="/nepal-hub" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">देश (७७ जिल्ला)</Link>
-                  <Link to="/category/pradesh" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">प्रदेश</Link>
-                  <Link to="/category/bishwo" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">विश्व</Link>
-                  <Link to="/category/economy" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">अर्थ</Link>
-                  <Link to="/category/sports" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">खेलकुद</Link>
-                  <Link to="/category/tech" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">प्रविधि</Link>
-                  <Link to="/category/entertainment" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">मनोरञ्जन</Link>
+                  <Link to="/nepal-hub" className="p-2.5 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                    <Globe size={14} /> ७ प्रदेश • ७७ जिल्ला
+                  </Link>
+                  <Link to="/category/politics" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">१. राजनीति (Politics)</Link>
+                  <Link to="/category/desh" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">२. देश (Desh)</Link>
+                  <Link to="/category/pradesh" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">३. प्रदेश (Pradesh)</Link>
+                  <Link to="/category/bishwo" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">४. विश्व (Bishwo)</Link>
+                  <Link to="/category/economy" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">५. अर्थ (Economy)</Link>
+                  <Link to="/category/sports" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">६. खेलकुद (Sports)</Link>
+                  <Link to="/category/entertainment" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">७. मनोरञ्जन (Entertainment)</Link>
+                  <Link to="/category/tech" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">८. प्रविधि (Tech)</Link>
+                  <Link to="/category/sanskar" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">९. संस्कार (Sanskar)</Link>
+                  <Link to="/category/tourism" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">१०. पर्यटन (Tourism)</Link>
+                  <Link to="/category/bichar" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">११. विचार (Bichar)</Link>
+                  <Link to="/category/development" className="p-2 rounded-xl hover:bg-muted-area dark:hover:bg-zinc-900 text-sm font-bold text-foreground dark:text-zinc-200">१२. विकास (Development)</Link>
                 </div>
               )}
             </div>

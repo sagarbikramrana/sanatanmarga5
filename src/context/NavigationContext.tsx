@@ -117,7 +117,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     renderCount.current = 0;
   }, [location.pathname]);
 
-  if (renderCount.current > 15 && process.env.NODE_ENV !== "production") {
+  if (renderCount.current > 15 && typeof import.meta !== "undefined" && (import.meta as any).env?.DEV) {
     console.warn(`[NavigationProvider] Render budget warning on path "${location.pathname}" (${renderCount.current} renders).`);
   }
 

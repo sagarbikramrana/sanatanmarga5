@@ -27,6 +27,7 @@ import {
 } from "../src/types/editorial.js";
 import { isModelInCooldown, recordModelQuotaExhausted, recordAITelemetry, MODEL_PURPOSES } from "./aiModels.js";
 import { snapshotOS } from "./snapshotOs.js";
+import { captureOutboxFailure } from "./sentry.js";
 
 export const KNOWN_REPUTABLE_DOMAINS = [
   "setopati.com",
@@ -773,6 +774,15 @@ export class ServerEditorialWorkflowOS {
             this.saveToDisk();
           }
         }
+        captureOutboxFailure({
+          jobId: id,
+          candidateId,
+          articleId: articleIdToRebuild,
+          attempt: currentAttempts,
+          maxAttempts: job.maxAttempts || 5,
+          reason: err.message || "Outbox snapshot rebuild failed",
+          workerId
+        });
       } else {
         console.warn(`[EditorialWorkflowOS] Worker ${workerId} aborted for job ${id}: ${err.message}. Preserving newer claim.`);
       }
@@ -1045,7 +1055,7 @@ export class ServerEditorialWorkflowOS {
     }
   }
 
-  private saveToDisk() {
+  public saveToDisk() {
     try {
       const arr = Array.from(this.candidates.values());
       fs.writeFileSync(this.dataFilePath, JSON.stringify(arr, null, 2), "utf-8");

@@ -4,7 +4,7 @@ import {
   Save, Eye, ArrowLeft, Image as ImageIcon, 
   Settings, Globe, Clock, Tag, LayoutDashboard,
   CheckCircle, AlertCircle, Trash2, Send, FileText, Languages, ChevronDown, MapPin, X, PanelRightClose, PanelRightOpen, Facebook,
-  ShieldCheck, ShieldAlert, Link2, Plus, AlertTriangle, Sparkles, Check, Info, TrendingUp, History, Workflow, Activity
+  ShieldCheck, ShieldAlert, Link2, Plus, AlertTriangle, Sparkles, Check, Info, TrendingUp, History, Workflow, Activity, Calendar
 } from "lucide-react";
 import { doc, collection, query, orderBy, where } from "@/src/lib/firebase";
 import { db, safeOnSnapshot, getDoc, setDoc, addDoc, getDocs } from "@/src/lib/firebase";
@@ -98,6 +98,13 @@ export default function AdminEditor() {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [schedulePublishAt, setSchedulePublishAt] = useState(() => {
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+  const [scheduleTimezone, setScheduleTimezone] = useState("Asia/Kathmandu");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -289,14 +296,14 @@ export default function AdminEditor() {
       ...(article.source ? [article.source] : [])
     ].filter(s => s && s.trim().length > 0);
 
-    if (targetStatus === "published") {
+    if (targetStatus === "published" || targetStatus === "scheduled") {
       if (allSources.length === 0) {
         setAlertInfo({
           show: true,
           title: language === "en" ? "Newsroom Integrity: No Source = No Publish" : "न्युजरुम सत्यता चेतावनी (No Source = No Publish)",
           message: language === "en" 
-            ? "At least one verified reference source URL is strictly required before publishing. Please add a source URL in the sidebar."
-            : "समाचार प्रकाशित गर्नका लागि कम्तीमा एउटा आधिकारिक समाचार स्रोत लिङ्क (URL) अनिवार्य छ। कृपया दायाँपट्टीको 'न्युजरुम सत्यता प्रणाली' मा स्रोत थप्नुहोस्।",
+            ? "At least one verified reference source URL is strictly required before publishing or scheduling. Please add a source URL in the sidebar."
+            : "समाचार प्रकाशित वा तालिकाबद्ध गर्न कम्तीमा एउटा आधिकारिक समाचार स्रोत लिङ्क (URL) अनिवार्य छ। कृपया दायाँपट्टीको 'न्युजरुम सत्यता प्रणाली' मा स्रोत थप्नुहोस्।",
           type: 'error'
         });
         return;
@@ -307,8 +314,8 @@ export default function AdminEditor() {
           show: true,
           title: language === "en" ? "Verification Required Before Publishing" : "प्रमाणीकरण आवश्यक (Verification Required)",
           message: language === "en"
-            ? "This article cannot be published until its verification status is set to 'Verified'. Please verify the sources in the sidebar."
-            : "प्रकाशन गर्नु अघि समाचारको प्रमाणीकरण स्थिति 'प्रमाणित (Verified)' हुनुपर्छ। कृपया दायाँपट्टीको प्रमाणीकरण स्थिति जाँच गर्नुहोस्।",
+            ? "This article cannot be published or scheduled until its verification status is set to 'Verified'. Please verify the sources in the sidebar."
+            : "प्रकाशन वा तालिकाबद्ध गर्नु अघि समाचारको प्रमाणीकरण स्थिति 'प्रमाणित (Verified)' हुनुपर्छ। कृपया दायाँपट्टीको प्रमाणीकरण स्थिति जाँच गर्नुहोस्।",
           type: 'error'
         });
         return;
@@ -323,6 +330,7 @@ export default function AdminEditor() {
       }
 
       const isPublishing = targetStatus === "published";
+      const isScheduling = targetStatus === "scheduled";
       const nowIso = new Date().toISOString();
 
       const articleData: any = {
@@ -331,6 +339,11 @@ export default function AdminEditor() {
         sourceUrls: allSources,
         source: allSources[0] || "",
         updatedAt: nowIso,
+        ...(isScheduling ? {
+          publishAt: new Date(schedulePublishAt).toISOString(),
+          scheduledAt: nowIso,
+          editorialStatus: "approved"
+        } : {}),
         // Enforce Article Publication Contract
         ...(isPublishing ? {
           publishedAt: article.publishedAt || nowIso,
@@ -516,6 +529,24 @@ export default function AdminEditor() {
             </button>
 
             <button 
+              onClick={() => {
+                const allSources = [
+                  ...(article.sourceUrls || []),
+                  ...(article.source ? [article.source] : [])
+                ].filter(s => s && s.trim().length > 0);
+                if (allSources.length === 0 || article.verificationStatus !== "verified") {
+                  handleSave("scheduled");
+                  return;
+                }
+                setScheduleModalOpen(true);
+              }}
+              disabled={saving}
+              className="px-4 lg:px-5 py-2.5 lg:py-3 bg-indigo-600 text-white rounded-xl lg:rounded-2xl font-bold text-xs lg:text-sm hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
+            >
+              <Calendar size={15} /> {language === "en" ? "Schedule" : "समयतालिका"}
+            </button>
+
+            <button 
               onClick={() => handleSave("published")}
               disabled={saving}
               className="px-6 lg:px-8 py-2.5 lg:py-3 bg-primary text-white rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2"
@@ -540,6 +571,95 @@ export default function AdminEditor() {
             onConfirm={confirmInfo.onConfirm}
             onCancel={() => setConfirmInfo({ ...confirmInfo, show: false })}
           />
+
+          {/* Schedule Publication Modal */}
+          {scheduleModalOpen && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-surface border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-base font-bold font-display text-foreground flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-indigo-600" /> {language === "en" ? "Schedule Publication" : "प्रकाशन समयतालिका"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {language === "en" ? "Set when this verified article should go live." : "प्रमाणित समाचार प्रकाशित हुने मिति र समय तोक्नुहोस्।"}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => setScheduleModalOpen(false)}
+                    className="p-1 rounded-xl text-muted-foreground hover:bg-muted"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1">
+                      {language === "en" ? "Publish Date & Time (Local)" : "प्रकाशन मिति र समय"}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={schedulePublishAt}
+                      onChange={(e) => setSchedulePublishAt(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs font-semibold focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-foreground mb-1">
+                      {language === "en" ? "Timezone" : "समयक्षेत्र"}
+                    </label>
+                    <select
+                      value={scheduleTimezone}
+                      onChange={(e) => setScheduleTimezone(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs font-semibold focus:outline-none focus:border-primary"
+                    >
+                      <option value="Asia/Kathmandu">Asia/Kathmandu (Nepal Time • UTC+5:45)</option>
+                      <option value="UTC">UTC (UTC+0)</option>
+                    </select>
+                  </div>
+
+                  {schedulePublishAt && (
+                    <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 text-xs">
+                      <span className="font-semibold text-indigo-600 block mb-0.5">
+                        {language === "en" ? "Scheduled Time Preview:" : "समय पूर्वावलोकन:"}
+                      </span>
+                      <span className="text-foreground font-bold">
+                        {(() => {
+                          try {
+                            return new Date(schedulePublishAt).toLocaleString("ne-NP", { dateStyle: "full", timeStyle: "medium" });
+                          } catch {
+                            return schedulePublishAt;
+                          }
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted"
+                  >
+                    {language === "en" ? "Cancel" : "रद्द"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScheduleModalOpen(false);
+                      handleSave("scheduled");
+                    }}
+                    className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md hover:bg-indigo-700"
+                  >
+                    {language === "en" ? "Confirm Schedule" : "तालिका सुरक्षित गर्नुहोस्"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Main Editor Area */}
           <main className="flex-grow overflow-y-auto p-6 lg:p-12 bg-background">

@@ -43,6 +43,21 @@ The production server requires the following environment variables to be set in 
 | `FIREBASE_PROJECT_ID` | Identifies the Firestore instance. | Firebase Console |
 | `FIREBASE_CLIENT_EMAIL` | Service Account email for admin SDK integrations. | GCP IAM Console |
 | `FIREBASE_PRIVATE_KEY` | Service Account private key (multiline string). | GCP Secret Manager |
+| `INTERNAL_TASK_SECRET` | Cryptographic secret (`>= 32` chars) for `X-Internal-Task-Secret` outbox/scheduler triggers. | GCP Secret Manager / Render Env |
+| `SCHEDULER_SERVICE_ACCOUNT_EMAIL` | Authorized GCP Service Account email for Cloud Scheduler OIDC bearer tokens. | GCP IAM Console |
+| `CLOUD_RUN_SERVICE_URL` | Canonical Cloud Run audience URL verified during OIDC token validation. | Cloud Run Console |
+| `SENTRY_DSN` / `VITE_SENTRY_DSN` | Server & client Sentry DSN for structured telemetry (`CAS_CONFLICT`, `OUTBOX_FAILURE`, `SCHEDULER_FAILURE`). | Sentry Organization Settings |
+| `SNAPSHOT_R2_BUCKET_NAME` | Dedicated Cloudflare R2 bucket for SnapshotOS CAS manifests (`manifest.json`). | Cloudflare R2 Dashboard |
+| `MEDIA_R2_BUCKET_NAME` | Dedicated Cloudflare R2 bucket for immutable media/audio assets. | Cloudflare R2 Dashboard |
+
+---
+
+## 2B. Multi-Platform Deployment Targets (GitHub, Render, Vercel, Netlify)
+
+SanatanMarga 5.0 includes turnkey deployment configurations for all major cloud platforms:
+- **GitHub Actions CI (`.github/workflows/ci.yml`)**: Automatically runs `npm run lint`, all Phase 4B.1 / 4B.1W / 1B / 4B.2 gates (`npm test`), and verifies `dist/index.html` + `dist/server.cjs` on every push and pull request.
+- **Render Full-Stack Node Service (`render.yaml`)**: Runs `npm ci && npm run build` and starts `npm run start` (`NODE_ENV=production node dist/server.cjs`) with `/health` readiness probes.
+- **Vercel (`vercel.json`) & Netlify (`netlify.toml`)**: Pre-configured with `dist` static output, immutable `/assets/*` caching, strict security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`), and SPA fallback routing (`/* -> /index.html`).
 
 ---
 

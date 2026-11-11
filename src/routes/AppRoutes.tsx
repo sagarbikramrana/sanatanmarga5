@@ -206,6 +206,11 @@ export default function AppRoutes() {
             <Pages.AdminEditorialCommandCenter />
           </ProtectedRoute>
         } />
+        <Route path="/admin/editorial" element={
+          <ProtectedRoute allowedRoles={['admin', 'editor']}>
+            <Pages.AdminEditorialCommandCenter />
+          </ProtectedRoute>
+        } />
         <Route path="/admin/page-builder" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <Pages.AdminPageBuilder />

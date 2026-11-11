@@ -28,7 +28,9 @@ import {
   HelpCircle,
   Eye,
   CheckCircle,
-  History
+  History,
+  X,
+  CalendarDays
 } from "lucide-react";
 import { StoryEvolutionEngine, SEED_STORYLINE_ARCS } from "@/src/services/storyEvolutionEngine";
 import { snapshotEngine } from "@/src/services/snapshotEngine";
@@ -36,7 +38,9 @@ import { contentRegistry } from "@/src/services/contentRegistry";
 import { toast } from "sonner";
 import type { StorylineArc, StoryMilestone } from "@/src/types";
 import { useAuth } from "@/src/lib/auth";
-import type { EditorialCandidate, EditorialCandidateStatus } from "@/src/types/editorial";
+import { auth } from "@/src/lib/firebase";
+import { apiFetch } from "@/src/lib/apiConfig";
+import type { EditorialCandidate, EditorialCandidateStatus, SchedulingStatus } from "@/src/types/editorial";
 
 interface EditorialTask {
   id: string;
@@ -151,6 +155,52 @@ export default function AdminEditorialCommandCenter() {
   });
   const [reasonText, setReasonText] = useState("");
 
+  // Phase 1C: Scheduler OS State & Modals
+  const [schedulerInfo, setSchedulerInfo] = useState<{
+    active: boolean;
+    pollingIntervalMs: number;
+    scheduledCandidatesCount: number;
+    lastCheckedAt?: string;
+  } | null>(null);
+  const [isProcessingDue, setIsProcessingDue] = useState(false);
+  const [scheduleModal, setScheduleModal] = useState<{
+    open: boolean;
+    candidate: EditorialCandidate | null;
+    publishAt: string;
+    timezone: string;
+    isSubmitting: boolean;
+  }>({
+    open: false,
+    candidate: null,
+    publishAt: "",
+    timezone: "Asia/Kathmandu",
+    isSubmitting: false
+  });
+  const [cancelModal, setCancelModal] = useState<{
+    open: boolean;
+    candidate: EditorialCandidate | null;
+    reason: string;
+    isSubmitting: boolean;
+  }>({
+    open: false,
+    candidate: null,
+    reason: "",
+    isSubmitting: false
+  });
+
+  // Auth header helper
+  const getAuthHeaders = async (includeJson = true): Promise<Record<string, string>> => {
+    const headers: Record<string, string> = {};
+    if (includeJson) headers["Content-Type"] = "application/json";
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    } catch {
+      // ignore
+    }
+    return headers;
+  };
+
   // Ingest form state
   const [ingestForm, setIngestForm] = useState({
     title: "",
@@ -168,15 +218,20 @@ export default function AdminEditorialCommandCenter() {
     setCandidatesLoading(true);
     try {
       let url = "/api/editorial/candidates";
-      if (candidateFilterStatus !== "all") {
+      if (candidateFilterStatus !== "all" && candidateFilterStatus !== "scheduled") {
         url += `?status=${encodeURIComponent(candidateFilterStatus)}`;
       }
-      const res = await fetch(url);
+      const headers = await getAuthHeaders(false);
+      const res = await apiFetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
-        setCandidates(data.candidates || []);
+        let list: EditorialCandidate[] = data.candidates || [];
+        if (candidateFilterStatus === "scheduled") {
+          list = list.filter((c: EditorialCandidate) => c.schedulingStatus === "scheduled");
+        }
+        setCandidates(list);
         if (selectedCandidate) {
-          const updated = (data.candidates || []).find((c: EditorialCandidate) => c.id === selectedCandidate.id);
+          const updated = list.find((c: EditorialCandidate) => c.id === selectedCandidate.id);
           if (updated) setSelectedCandidate(updated);
         }
       }
@@ -187,8 +242,30 @@ export default function AdminEditorialCommandCenter() {
     }
   };
 
+  // Fetch Scheduler OS Status
+  const fetchSchedulerStatus = async () => {
+    try {
+      const headers = await getAuthHeaders(false);
+      const res = await apiFetch("/api/editorial/scheduler/status", { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSchedulerInfo({
+            active: data.active,
+            pollingIntervalMs: data.pollingIntervalMs,
+            scheduledCandidatesCount: data.scheduledCandidatesCount,
+            lastCheckedAt: data.lastCheckedAt
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Scheduler status fetch warning:", err);
+    }
+  };
+
   useEffect(() => {
     fetchCandidates();
+    fetchSchedulerStatus();
   }, [candidateFilterStatus]);
 
   // Handle Candidate Ingest
@@ -331,13 +408,16 @@ export default function AdminEditorialCommandCenter() {
   const handlePublish = async (candId: string) => {
     setIsPublishing(true);
     try {
-      const res = await fetch(`/api/editorial/candidates/${candId}/publish`, {
-        method: "POST"
+      const headers = await getAuthHeaders();
+      const res = await apiFetch(`/api/editorial/candidates/${candId}/publish`, {
+        method: "POST",
+        headers
       });
       const data = await res.json();
       if (res.ok && data.success) {
         toast.success(`क्यानोनिकल समाचार प्रकाशित भयो! ID: ${data.articleId}`);
         fetchCandidates();
+        fetchSchedulerStatus();
       } else {
         toast.error(data.error || "प्रकाशन असफल भयो");
       }
@@ -346,6 +426,202 @@ export default function AdminEditorialCommandCenter() {
     } finally {
       setIsPublishing(false);
     }
+  };
+
+  // Process Due Scheduled Candidates Now
+  const handleProcessDueNow = async () => {
+    setIsProcessingDue(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await apiFetch("/api/editorial/scheduler/process-due", {
+        method: "POST",
+        headers
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`तालिका प्रक्रिया सम्पन्न: ${data.processedCount || 0} प्रकाशित, ${data.failedCount || 0} असफल`);
+        fetchCandidates();
+        fetchSchedulerStatus();
+      } else {
+        toast.error(data.error || "तालिका प्रक्रिया असफल भयो");
+      }
+    } catch (err: any) {
+      toast.error(`त्रुटि: ${err.message}`);
+    } finally {
+      setIsProcessingDue(false);
+    }
+  };
+
+  // Open Schedule Modal
+  const handleOpenScheduleModal = (candidate: EditorialCandidate) => {
+    const baseDate = candidate.schedule?.publishAt 
+      ? new Date(candidate.schedule.publishAt) 
+      : new Date(Date.now() + 60 * 60 * 1000);
+    
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const localIso = `${baseDate.getFullYear()}-${pad(baseDate.getMonth() + 1)}-${pad(baseDate.getDate())}T${pad(baseDate.getHours())}:${pad(baseDate.getMinutes())}`;
+
+    setScheduleModal({
+      open: true,
+      candidate,
+      publishAt: localIso,
+      timezone: candidate.schedule?.timezone || "Asia/Kathmandu",
+      isSubmitting: false
+    });
+  };
+
+  // Helper Presets for Schedule Modal
+  const setPresetOffset = (offsetMinutes: number) => {
+    const targetDate = new Date(Date.now() + offsetMinutes * 60 * 1000);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const formatted = `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}T${pad(targetDate.getHours())}:${pad(targetDate.getMinutes())}`;
+    setScheduleModal(prev => ({ ...prev, publishAt: formatted }));
+  };
+
+  const setPresetTomorrow = (targetHour: number) => {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 1);
+    targetDate.setHours(targetHour, 0, 0, 0);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const formatted = `${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}T${pad(targetDate.getHours())}:${pad(targetDate.getMinutes())}`;
+    setScheduleModal(prev => ({ ...prev, publishAt: formatted }));
+  };
+
+  // Confirm Schedule Candidate
+  const handleConfirmSchedule = async () => {
+    if (!scheduleModal.candidate || !scheduleModal.publishAt) {
+      toast.error("कृपया प्रकाशन समय छान्नुहोस्");
+      return;
+    }
+
+    const targetDate = new Date(scheduleModal.publishAt);
+    if (isNaN(targetDate.getTime())) {
+      toast.error("अमान्य मिति वा समय");
+      return;
+    }
+
+    if (targetDate.getTime() <= Date.now()) {
+      toast.error("प्रकाशन समय भविष्यको हुनुपर्छ (विगतको समय तालिकाबद्ध गर्न मिल्दैन)");
+      return;
+    }
+
+    setScheduleModal(prev => ({ ...prev, isSubmitting: true }));
+    try {
+      const headers = await getAuthHeaders();
+      const res = await apiFetch(`/api/editorial/candidates/${scheduleModal.candidate.id}/schedule`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          publishAt: targetDate.toISOString(),
+          timezone: scheduleModal.timezone
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("क्यानोनिकल प्रकाशन समयतालिका सफलतापूर्वक सुरक्षित भयो!");
+        setScheduleModal(prev => ({ ...prev, open: false, isSubmitting: false }));
+        fetchCandidates();
+        fetchSchedulerStatus();
+      } else {
+        toast.error(data.error || "तालिका सुरक्षित गर्न सकिएन");
+        setScheduleModal(prev => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (err: any) {
+      toast.error(`त्रुटि: ${err.message}`);
+      setScheduleModal(prev => ({ ...prev, isSubmitting: false }));
+    }
+  };
+
+  // Open Cancel Schedule Modal
+  const handleOpenCancelModal = (candidate: EditorialCandidate) => {
+    setCancelModal({
+      open: true,
+      candidate,
+      reason: "",
+      isSubmitting: false
+    });
+  };
+
+  // Confirm Cancel Schedule
+  const handleConfirmCancelSchedule = async () => {
+    if (!cancelModal.candidate) return;
+    if (!cancelModal.reason.trim()) {
+      toast.error("तालिका रद्द गर्नुको कारण खुलाउनु अनिवार्य छ");
+      return;
+    }
+
+    setCancelModal(prev => ({ ...prev, isSubmitting: true }));
+    try {
+      const headers = await getAuthHeaders();
+      const res = await apiFetch(`/api/editorial/candidates/${cancelModal.candidate.id}/cancel-schedule`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          reason: cancelModal.reason.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("प्रकाशन समयतालिका सफलतापूर्वक रद्द गरियो");
+        setCancelModal(prev => ({ ...prev, open: false, isSubmitting: false }));
+        fetchCandidates();
+        fetchSchedulerStatus();
+      } else {
+        toast.error(data.error || "तालिका रद्द गर्न सकिएन");
+        setCancelModal(prev => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (err: any) {
+      toast.error(`त्रुटि: ${err.message}`);
+      setCancelModal(prev => ({ ...prev, isSubmitting: false }));
+    }
+  };
+
+  // Scheduling Badge Helper
+  const getSchedulingBadge = (cand: EditorialCandidate) => {
+    const status = cand.schedulingStatus || "none";
+    if (status === "scheduled" && cand.schedule?.publishAt) {
+      const dateStr = new Date(cand.schedule.publishAt).toLocaleString("ne-NP", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+      return (
+        <span 
+          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 flex items-center gap-1 border border-indigo-500/20"
+          title={`Scheduled for ${cand.schedule.publishAt} (${cand.schedule.timezone || "Asia/Kathmandu"})`}
+        >
+          <Clock className="w-3 h-3 text-indigo-600" /> तालिकाबद्ध: {dateStr}
+        </span>
+      );
+    }
+    if (status === "processing") {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 flex items-center gap-1 border border-amber-500/20">
+          <RefreshCw className="w-3 h-3 animate-spin text-amber-600" /> प्रशोधन हुँदै...
+        </span>
+      );
+    }
+    if (status === "failed") {
+      return (
+        <span 
+          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-600 flex items-center gap-1 border border-red-500/20" 
+          title={cand.schedule?.failureReason || "पुनः प्रयास सीमा समाप्त"}
+        >
+          <AlertTriangle className="w-3 h-3 text-red-600" /> तालिका असफल ({cand.executionAttempts || 0}/3)
+        </span>
+      );
+    }
+    if (status === "cancelled") {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-500/10 text-zinc-600 flex items-center gap-1 border border-zinc-500/20">
+          तालिका रद्द
+        </span>
+      );
+    }
+    return null;
   };
 
   // New task form state
@@ -465,17 +741,38 @@ export default function AdminEditorialCommandCenter() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-2">
               <Command className="w-3.5 h-3.5" />
-              Newsroom 5.0 • Editorial Workflow Foundation (Phase 4B.1)
+              Newsroom 5.0 • Editorial Workflow & Scheduled Publishing OS (Phase 1C)
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold font-display tracking-tight text-foreground">
               सम्पादकीय कमान्ड सेन्टर (Editorial Command Center)
             </h1>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">
-              "No Source = No Story" सिद्धान्तमा आधारित प्रमाण-सत्यापन, AI मस्यौदा, सम्पादक स्वीकृति र क्यानोनिकल प्रकाशन।
+              "No Source = No Story" सिद्धान्तमा आधारित प्रमाण-सत्यापन, AI मस्यौदा, तालिकाबद्ध प्रकाशन (Scheduler OS) र क्यानोनिकल वितरण।
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Scheduler Status Widget */}
+            {schedulerInfo && (
+              <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-muted/60 border border-border text-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="font-semibold text-foreground">Scheduler OS: सक्रिय</span>
+                <span className="text-muted-foreground font-mono">({schedulerInfo.scheduledCandidatesCount} तालिकामा)</span>
+                
+                <button
+                  onClick={handleProcessDueNow}
+                  disabled={isProcessingDue}
+                  title="बाँकी रहेका तालिकाबद्ध क्यान्डिडेटहरू अहिले नै प्रक्रिया गर्नुहोस्"
+                  className="ml-1 p-1 rounded-lg hover:bg-surface text-primary transition-all disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isProcessingDue ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => setIsIngestModalOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-primary text-white text-xs font-bold shadow-md hover:bg-primary/90 transition-all"
@@ -484,7 +781,10 @@ export default function AdminEditorialCommandCenter() {
             </button>
 
             <button
-              onClick={fetchCandidates}
+              onClick={() => {
+                fetchCandidates();
+                fetchSchedulerStatus();
+              }}
               disabled={candidatesLoading}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-muted text-foreground border border-border text-xs font-bold hover:bg-muted/80 transition-all"
             >
@@ -539,6 +839,7 @@ export default function AdminEditorialCommandCenter() {
                   { key: "in_review", label: "समीक्षामा" },
                   { key: "changes_requested", label: "सुधार माग" },
                   { key: "approved", label: "स्वीकृत" },
+                  { key: "scheduled", label: "तालिकाबद्ध (Scheduled)" },
                   { key: "published", label: "प्रकाशित" },
                   { key: "rejected", label: "अस्वीकृत" }
                 ].map(chip => (
@@ -588,8 +889,9 @@ export default function AdminEditorialCommandCenter() {
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {getStatusBadge(cand.status)}
+                        {getSchedulingBadge(cand)}
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-muted text-foreground">
                           {cand.category}
                         </span>
@@ -678,16 +980,65 @@ export default function AdminEditorialCommandCenter() {
                         )}
 
                         {cand.status === "approved" && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePublish(cand.id);
-                            }}
-                            disabled={isPublishing}
-                            className="px-3 py-1 rounded-xl bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700"
-                          >
-                            <Send className="w-3 h-3" /> क्यानोनिकल प्रकाशन
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            {cand.schedulingStatus === "scheduled" ? (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenScheduleModal(cand);
+                                  }}
+                                  className="px-2.5 py-1 rounded-xl bg-indigo-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-indigo-700 shadow-sm"
+                                  title="समयतालिका परिवर्तन गर्नुहोस्"
+                                >
+                                  <Calendar className="w-3 h-3" /> पुनः तालिका
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenCancelModal(cand);
+                                  }}
+                                  className="px-2 py-1 rounded-xl bg-zinc-500/10 text-zinc-600 hover:bg-zinc-500/20 text-[11px] font-bold"
+                                  title="तालिका रद्द गर्नुहोस्"
+                                >
+                                  रद्द
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePublish(cand.id);
+                                  }}
+                                  disabled={isPublishing}
+                                  className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700"
+                                  title="अहिले नै प्रकाशन गर्नुहोस्"
+                                >
+                                  <Send className="w-3 h-3" /> अहिल्यै
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenScheduleModal(cand);
+                                  }}
+                                  className="px-2.5 py-1 rounded-xl bg-indigo-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-indigo-700 shadow-sm"
+                                >
+                                  <Calendar className="w-3 h-3" /> तालिका
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePublish(cand.id);
+                                  }}
+                                  disabled={isPublishing}
+                                  className="px-3 py-1 rounded-xl bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700"
+                                >
+                                  <Send className="w-3 h-3" /> क्यानोनिकल प्रकाशन
+                                </button>
+                              </>
+                            )}
+                          </div>
                         )}
 
                         {cand.status === "published" && cand.publishedArticleId && (
@@ -777,6 +1128,53 @@ export default function AdminEditorialCommandCenter() {
                     </div>
                   )}
 
+                  {/* Publication Schedule Card */}
+                  {(selectedCandidate.schedule || selectedCandidate.schedulingStatus === "scheduled" || selectedCandidate.schedulingStatus === "failed") && (
+                    <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
+                          <CalendarDays className="w-3.5 h-3.5" /> प्रकाशन समयतालिका विवरण
+                        </span>
+                        {getSchedulingBadge(selectedCandidate)}
+                      </div>
+                      
+                      {selectedCandidate.schedule?.publishAt && (
+                        <div className="space-y-1.5 text-xs pt-1">
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>नेपाल समय (Asia/Kathmandu):</span>
+                            <span className="font-semibold text-foreground">
+                              {new Date(selectedCandidate.schedule.publishAt).toLocaleString("ne-NP", {
+                                dateStyle: "full",
+                                timeStyle: "medium"
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground font-mono text-[10px]">
+                            <span>UTC समय:</span>
+                            <span className="text-foreground">{selectedCandidate.schedule.publishAt}</span>
+                          </div>
+                          {selectedCandidate.schedule.scheduledByEmail && (
+                            <div className="flex justify-between text-muted-foreground text-[10px]">
+                              <span>तालिका दर्ताकर्ता:</span>
+                              <span className="text-foreground">{selectedCandidate.schedule.scheduledByEmail}</span>
+                            </div>
+                          )}
+                          {selectedCandidate.executionAttempts !== undefined && selectedCandidate.executionAttempts > 0 && (
+                            <div className="flex justify-between text-muted-foreground text-[10px]">
+                              <span>प्रयास संख्या:</span>
+                              <span className="font-bold">{selectedCandidate.executionAttempts}/3</span>
+                            </div>
+                          )}
+                          {selectedCandidate.schedule.failureReason && (
+                            <div className="p-2 rounded-lg bg-red-500/10 text-red-600 text-[11px]">
+                              त्रुटि: {selectedCandidate.schedule.failureReason}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Editorial Audit History */}
                   <div className="space-y-3">
                     <span className="text-xs font-bold text-foreground flex items-center gap-1.5 font-display">
@@ -819,13 +1217,49 @@ export default function AdminEditorialCommandCenter() {
                     )}
 
                     {selectedCandidate.status === "approved" && (
-                      <button
-                        onClick={() => handlePublish(selectedCandidate.id)}
-                        disabled={isPublishing}
-                        className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 flex items-center justify-center gap-1.5"
-                      >
-                        <Send className="w-3.5 h-3.5" /> क्यानोनिकल समाचारमा प्रकाशन गर्नुहोस्
-                      </button>
+                      <div className="w-full flex flex-col gap-2">
+                        {selectedCandidate.schedulingStatus === "scheduled" ? (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleOpenScheduleModal(selectedCandidate)}
+                                className="flex-1 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-1.5"
+                              >
+                                <Calendar className="w-3.5 h-3.5" /> समयतालिका परिवर्तन
+                              </button>
+                              <button
+                                onClick={() => handleOpenCancelModal(selectedCandidate)}
+                                className="px-4 py-2 rounded-xl bg-zinc-500/10 text-zinc-600 text-xs font-bold hover:bg-zinc-500/20"
+                              >
+                                तालिका रद्द
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => handlePublish(selectedCandidate.id)}
+                              disabled={isPublishing}
+                              className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 flex items-center justify-center gap-1.5"
+                            >
+                              <Send className="w-3.5 h-3.5" /> अहिले नै क्यानोनिकल प्रकाशन गर्नुहोस्
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handlePublish(selectedCandidate.id)}
+                              disabled={isPublishing}
+                              className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 flex items-center justify-center gap-1.5"
+                            >
+                              <Send className="w-3.5 h-3.5" /> क्यानोनिकल प्रकाशन गर्नुहोस्
+                            </button>
+                            <button
+                              onClick={() => handleOpenScheduleModal(selectedCandidate)}
+                              className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 flex items-center justify-center gap-1.5 shadow-sm"
+                            >
+                              <Calendar className="w-3.5 h-3.5" /> समयतालिका
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1172,6 +1606,239 @@ export default function AdminEditorialCommandCenter() {
                 }`}
               >
                 पुष्टि गर्नुहोस्
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 1C: Schedule Publication Modal */}
+      {scheduleModal.open && scheduleModal.candidate && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface border border-border rounded-3xl p-6 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-600 mb-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Scheduler OS • स्वचालित क्यानोनिकल प्रकाशन
+                </div>
+                <h3 className="text-base font-bold font-display text-foreground">
+                  प्रकाशन समयतालिका तय गर्नुहोस्
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  तोकिएको मिति र समयमा यो समाचार स्वचालित रूपमा क्यानोनिकल पोर्टलमा प्रकाशित हुनेछ।
+                </p>
+              </div>
+              <button
+                onClick={() => setScheduleModal(prev => ({ ...prev, open: false }))}
+                className="p-1 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Candidate Summary Card */}
+            <div className="p-3.5 rounded-2xl bg-muted/30 border border-border space-y-1">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
+                चयन गरिएको समाचार सामग्री
+              </span>
+              <h4 className="text-xs font-bold text-foreground font-display line-clamp-2">
+                {scheduleModal.candidate.title}
+              </h4>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-1">
+                <span>कोटि: <strong className="text-foreground">{scheduleModal.candidate.category}</strong></span>
+                <span>•</span>
+                <span>स्थिति: <strong className="text-emerald-600">{scheduleModal.candidate.status}</strong></span>
+              </div>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-muted-foreground block">
+                द्रुत समय चयन (Quick Presets)
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPresetOffset(30)}
+                  className="px-2.5 py-1 rounded-xl bg-muted border border-border text-[11px] font-semibold text-foreground hover:bg-primary hover:text-white transition-all"
+                >
+                  +३० मिनेट
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresetOffset(60)}
+                  className="px-2.5 py-1 rounded-xl bg-muted border border-border text-[11px] font-semibold text-foreground hover:bg-primary hover:text-white transition-all"
+                >
+                  +१ घण्टा
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresetOffset(180)}
+                  className="px-2.5 py-1 rounded-xl bg-muted border border-border text-[11px] font-semibold text-foreground hover:bg-primary hover:text-white transition-all"
+                >
+                  +३ घण्टा
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresetTomorrow(6)}
+                  className="px-2.5 py-1 rounded-xl bg-muted border border-border text-[11px] font-semibold text-foreground hover:bg-primary hover:text-white transition-all"
+                >
+                  भोलि बिहान ६:००
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresetTomorrow(18)}
+                  className="px-2.5 py-1 rounded-xl bg-muted border border-border text-[11px] font-semibold text-foreground hover:bg-primary hover:text-white transition-all"
+                >
+                  भोलि साँझ ६:००
+                </button>
+              </div>
+            </div>
+
+            {/* Datetime-Local Picker */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1">
+                  प्रकाशन मिति र समय (स्थानीय)
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={scheduleModal.publishAt}
+                  onChange={(e) => setScheduleModal(prev => ({ ...prev, publishAt: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs font-semibold focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1">
+                  समयक्षेत्र (Timezone)
+                </label>
+                <select
+                  value={scheduleModal.timezone}
+                  onChange={(e) => setScheduleModal(prev => ({ ...prev, timezone: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs font-semibold focus:outline-none focus:border-primary"
+                >
+                  <option value="Asia/Kathmandu">नेपाल समय (Asia/Kathmandu • UTC+5:45)</option>
+                  <option value="UTC">विश्व मानक समय (UTC • UTC+0)</option>
+                  <option value="Asia/Kolkata">भारतीय समय (Asia/Kolkata • UTC+5:30)</option>
+                  <option value="America/New_York">अमेरिकी पूर्वी समय (America/New_York)</option>
+                  <option value="Europe/London">लन्डन समय (Europe/London)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Realtime Live Preview */}
+            {scheduleModal.publishAt && (
+              <div className="p-3.5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 text-xs space-y-1">
+                <div className="flex items-center justify-between font-bold text-indigo-600">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> निर्धारित समय पूर्वावलोकन
+                  </span>
+                  <span className="text-[10px] font-mono uppercase">{scheduleModal.timezone}</span>
+                </div>
+                <p className="text-foreground font-semibold">
+                  {new Date(scheduleModal.publishAt).toLocaleString("ne-NP", {
+                    dateStyle: "full",
+                    timeStyle: "medium"
+                  })}
+                </p>
+                <p className="text-[10px] font-mono text-muted-foreground truncate">
+                  UTC ISO: {(() => {
+                    try {
+                      return new Date(scheduleModal.publishAt).toISOString();
+                    } catch {
+                      return "अमान्य समय";
+                    }
+                  })()}
+                </p>
+              </div>
+            )}
+
+            {/* Invariant Safety Note */}
+            <div className="p-3 rounded-2xl bg-muted/40 border border-border text-[11px] text-muted-foreground">
+              <strong className="text-foreground">सुरक्षा सिद्धान्त:</strong> अप्रमाणित वा अस्वीकृत सामग्री कुनै पनि अवस्थामा तालिकाबद्ध गर्न मिल्दैन। निर्धारित समय हुनासाथ Scheduler OS ले कडा लीज, क्यास फेन्सिङ र क्यानोनिकल पाइपलाइनबाट मात्र प्रकाशन गर्नेछ।
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setScheduleModal(prev => ({ ...prev, open: false }))}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted"
+              >
+                रद्द गर्नुहोस्
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSchedule}
+                disabled={scheduleModal.isSubmitting}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md hover:bg-indigo-700 disabled:opacity-50"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                {scheduleModal.isSubmitting ? "तालिका दर्ता हुँदैछ..." : "समयतालिका सुरक्षित गर्नुहोस्"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 1C: Cancel Schedule Confirmation Modal */}
+      {cancelModal.open && cancelModal.candidate && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/10 text-red-600 mb-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  समयतालिका रद्द पुष्टिकरण
+                </div>
+                <h3 className="text-base font-bold font-display text-foreground">
+                  प्रकाशन तालिका रद्द गर्नुहोस्
+                </h3>
+              </div>
+              <button
+                onClick={() => setCancelModal(prev => ({ ...prev, open: false }))}
+                className="p-1 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              के तपाईं <strong>"{cancelModal.candidate.title}"</strong> को स्वचालित क्यानोनिकल प्रकाशन तालिका रद्द गर्न चाहनुहुन्छ? सामग्री स्वीकृत (Approved) अवस्थामै रहनेछ।
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-foreground mb-1">
+                रद्द गर्नुको सम्पादकीय कारण <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={cancelModal.reason}
+                onChange={(e) => setCancelModal(prev => ({ ...prev, reason: e.target.value }))}
+                placeholder="तालिका रद्द गर्नुको कारण खुलाउनुहोस् (उदा. थप तथ्य प्रमाण संकलन गर्नुपर्ने भएकोले)..."
+                className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs font-semibold focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setCancelModal(prev => ({ ...prev, open: false }))}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted"
+              >
+                फिर्ता हुनुहोस्
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancelSchedule}
+                disabled={cancelModal.isSubmitting}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 text-white text-xs font-bold shadow-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancelModal.isSubmitting ? "रद्द गरिँदैछ..." : "तालिका रद्द गर्नुहोस्"}
               </button>
             </div>
           </div>

@@ -7,6 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
+    define: {
+      'process.env': {}
+    },
     plugins: [
       react(), 
       tailwindcss()

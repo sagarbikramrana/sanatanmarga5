@@ -142,19 +142,19 @@ export default function AdminNepalIntelligenceOS() {
         {activeTab === 'market' && (
           <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-6">
             <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-amber-600" /> Market Pulse Configuration & Sources
+              <DollarSign className="w-5 h-5 text-amber-600" /> NRB Forex & Civic Infrastructure Telemetry
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                <span className="text-xs text-zinc-400 block mb-1">Gold Fine / Tejabi</span>
-                <span className="font-bold text-zinc-900 dark:text-zinc-100">{today.marketPulse.goldFinePerTola}</span>
+                <span className="text-xs text-zinc-400 block mb-1">National Hydro Grid (NEA)</span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">{today.marketPulse.civicIndicators.hydroGeneration}</span>
               </div>
               <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                <span className="text-xs text-zinc-400 block mb-1">NEPSE Index</span>
-                <span className="font-bold text-emerald-600">{today.marketPulse.nepseIndex.points} ({today.marketPulse.nepseIndex.change})</span>
+                <span className="text-xs text-zinc-400 block mb-1">Geographic Coverage</span>
+                <span className="font-bold text-emerald-600">{today.marketPulse.civicIndicators.provincesCovered}</span>
               </div>
               <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                <span className="text-xs text-zinc-400 block mb-1">USD Exchange Rate</span>
+                <span className="text-xs text-zinc-400 block mb-1">USD Exchange Rate (NRB)</span>
                 <span className="font-bold text-zinc-900 dark:text-zinc-100">{today.marketPulse.forexRates.usd}</span>
               </div>
             </div>

@@ -36,6 +36,25 @@ export default function CourseDetailPage() {
   const [activeLessonIndex, setActiveLessonIndex] = useState<number>(0);
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
   const [isGeneratingCert, setIsGeneratingCert] = useState<boolean>(false);
+  const [classroomTab, setClassroomTab] = useState<"notes" | "qa" | "sgis" | "assignments">("notes");
+  const [noteTimestamp, setNoteTimestamp] = useState<string>("04:15");
+  const [noteInput, setNoteInput] = useState<string>("");
+  const [studentNotes, setStudentNotes] = useState<Array<{ id: string; timestamp: string; text: string; lessonIdx: number }>>([
+    { id: "n1", timestamp: "02:30", text: "कर्मयोगको मूल सूत्र: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन' (अध्याय २, श्लोक ४७)", lessonIdx: 0 },
+    { id: "n2", timestamp: "08:45", text: "स्थितप्रज्ञ व्यक्तिको लक्षण र मनको सन्तुलन विधि।", lessonIdx: 0 }
+  ]);
+  const [qaInput, setQaInput] = useState<string>("");
+  const [qaList, setQaList] = useState<Array<{ id: string; timestamp: string; student: string; question: string; acharyaReply: string }>>([
+    {
+      id: "q1",
+      timestamp: "05:12",
+      student: "साधक प्रकाश अधिकारी",
+      question: "आचार्यज्यू, निष्काम कर्म र संन्यास बीचको व्यावहारिक भिन्नता के हो?",
+      acharyaReply: "डा. स्वामी रामानन्द: फलको आसक्ति त्यागेर समाज र धर्मका लागि कर्तव्य पूरा गर्नु नै निष्काम कर्मयोग हो।"
+    }
+  ]);
+  const [attendanceMarked, setAttendanceMarked] = useState<boolean>(true);
+  const [assignmentSubmitted, setAssignmentSubmitted] = useState<boolean>(false);
 
   if (!course) {
     return (
@@ -177,6 +196,199 @@ export default function CourseDetailPage() {
                         <Download size={14} />
                         <span>{isGeneratingCert ? "तयार हुँदैछ..." : "प्रमाणपत्र (PDF)"}</span>
                       </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* GURUKUL INTERACTIVE CLASSROOM WORKSPACE: TIMESTAMP NOTES, Q&A, SGIS & ASSIGNMENTS */}
+                <div className="bg-card border border-border-theme rounded-3xl p-6 space-y-5 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-2 border-b border-border-theme pb-3">
+                    {[
+                      { id: "notes", label: "टाइमस्ट्याम्प टिपोट (Timestamp Notes)" },
+                      { id: "qa", label: "प्रश्नोत्तर संवाद (Timestamp Q&A)" },
+                      { id: "sgis", label: "SGIS ग्रन्थ र पाण्डुलिपि (SGIS References)" },
+                      { id: "assignments", label: "गृहकार्य र हाजिरी (Assignments & Attendance)" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setClassroomTab(tab.id as any)}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                          classroomTab === tab.id
+                            ? "bg-primary text-white shadow-sm"
+                            : "bg-muted-area text-muted-text hover:text-foreground border border-border-theme"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* TAB 1: TIMESTAMPED STUDENT NOTES */}
+                  {classroomTab === "notes" && (
+                    <div className="space-y-4">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!noteInput.trim()) return;
+                          setStudentNotes([
+                            ...studentNotes,
+                            { id: `n_${Date.now()}`, timestamp: noteTimestamp || "00:00", text: noteInput.trim(), lessonIdx: activeLessonIndex },
+                          ]);
+                          setNoteInput("");
+                          toast.success("टाइमस्ट्याम्प टिपोट सुरक्षित गरियो!");
+                        }}
+                        className="flex flex-col sm:flex-row gap-2"
+                      >
+                        <input
+                          type="text"
+                          value={noteTimestamp}
+                          onChange={(e) => setNoteTimestamp(e.target.value)}
+                          placeholder="04:15"
+                          className="w-24 px-3 py-2 rounded-xl bg-muted-area border border-border-theme text-xs font-mono font-bold text-primary"
+                        />
+                        <input
+                          type="text"
+                          value={noteInput}
+                          onChange={(e) => setNoteInput(e.target.value)}
+                          placeholder="यस पाठको टाइमस्ट्याम्पमा आफ्नो अध्ययन टिपोट थप्नुहोस्..."
+                          className="flex-1 px-3.5 py-2 rounded-xl bg-muted-area border border-border-theme text-xs"
+                        />
+                        <button
+                          type="submit"
+                          className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-black shrink-0"
+                        >
+                          टिपोट सेभ गर्नुहोस्
+                        </button>
+                      </form>
+
+                      <div className="space-y-2">
+                        {studentNotes.map((note) => (
+                          <div key={note.id} className="p-3 rounded-2xl bg-muted-area/40 border border-border-theme flex items-start gap-3">
+                            <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono text-[11px] font-bold shrink-0">
+                              [{note.timestamp}]
+                            </span>
+                            <p className="text-xs text-card-foreground">{note.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 2: TIMESTAMP-LINKED Q&A & DISCUSSIONS */}
+                  {classroomTab === "qa" && (
+                    <div className="space-y-4">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!qaInput.trim()) return;
+                          setQaList([
+                            ...qaList,
+                            {
+                              id: `q_${Date.now()}`,
+                              timestamp: noteTimestamp || "06:20",
+                              student: (user as any)?.displayName || "विद्यार्थी साधक",
+                              question: qaInput.trim(),
+                              acharyaReply: "आचार्य कक्षमा प्रश्न दर्ता भयो — आगामी प्रत्यक्ष सत्रमा उत्तर दिइनेछ।",
+                            },
+                          ]);
+                          setQaInput("");
+                          toast.success("आचार्य समक्ष प्रश्न पठाइयो!");
+                        }}
+                        className="flex flex-col sm:flex-row gap-2"
+                      >
+                        <input
+                          type="text"
+                          value={qaInput}
+                          onChange={(e) => setQaInput(e.target.value)}
+                          placeholder="पाठको विशेष समय-बिन्दु उल्लेख गरी आचार्यलाई प्रश्न सोध्नुहोस्..."
+                          className="flex-1 px-3.5 py-2 rounded-xl bg-muted-area border border-border-theme text-xs"
+                        />
+                        <button
+                          type="submit"
+                          className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-black shrink-0"
+                        >
+                          प्रश्न सोध्नुहोस्
+                        </button>
+                      </form>
+
+                      <div className="space-y-3">
+                        {qaList.map((item) => (
+                          <div key={item.id} className="p-3.5 rounded-2xl bg-muted-area/40 border border-border-theme space-y-2">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-mono text-[10px] font-bold">
+                                @{item.timestamp}
+                              </span>
+                              <span className="font-black text-card-foreground">{item.student}:</span>
+                              <span className="text-card-foreground">{item.question}</span>
+                            </div>
+                            <div className="pl-4 border-l-2 border-primary text-xs text-muted-text">
+                              {item.acharyaReply}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: SGIS SCRIPTURE & MANUSCRIPT REFERENCES */}
+                  {classroomTab === "sgis" && (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-text">
+                        यस पाठमा सन्दर्भित प्राथमिक ग्रन्थ र सनातन ग्रन्थ सूचना प्रणाली (SGIS) पाण्डुलिपि अभिलेखहरू:
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="p-3.5 rounded-2xl bg-muted-area/40 border border-border-theme space-y-1.5">
+                          <div className="text-xs font-black text-card-foreground">श्रीमद्भगवद्गीता ताडपत्र पाण्डुलिपि (SGIS #MS-108)</div>
+                          <div className="text-[11px] text-muted-text">अध्याय २ • साङ्ख्ययोग श्लोक ४७–५५ • संस्कृत मूल र नेपाली भाष्य</div>
+                          <Link to="/archives" className="inline-block text-[11px] font-bold text-primary hover:underline">
+                            SGIS डिप-जुम अभिलेखालयमा हेर्नुहोस् →
+                          </Link>
+                        </div>
+                        <div className="p-3.5 rounded-2xl bg-muted-area/40 border border-border-theme space-y-1.5">
+                          <div className="text-xs font-black text-card-foreground">चाँगुनारायण मानदेव शिलालेख (SGIS #EP-464)</div>
+                          <div className="text-[11px] text-muted-text">लिच्छवि लिपि लिप्यन्तरण र ऐतिहासिक कालक्रम</div>
+                          <Link to="/knowledge" className="inline-block text-[11px] font-bold text-primary hover:underline">
+                            ज्ञानकोष (Knowledge OS) मा हेर्नुहोस् →
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 4: ASSIGNMENTS, ATTENDANCE & COMPETENCY */}
+                  {classroomTab === "assignments" && (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-muted-area/40 border border-border-theme flex items-center justify-between">
+                        <div>
+                          <div className="text-xs font-black text-card-foreground">कक्षा हाजिरी (Classroom Attendance Status)</div>
+                          <div className="text-[11px] text-muted-text">प्रत्यक्ष तथा रेकर्ड गरिएका पाठहरूको सहभागिता अभिलेख</div>
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-black border border-emerald-500/20">
+                          {attendanceMarked ? "हाजिरी प्रमाणित (Present • 100%)" : "Pending"}
+                        </span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-muted-area/40 border border-border-theme flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-black text-card-foreground">स्वाध्याय गृहकार्य (Lesson Reflection Assignment)</div>
+                          <div className="text-[11px] text-muted-text">यस पाठका मुख्य ३ दार्शनिक सूत्रहरूको संक्षिप्त विवेचना बुझाउनुहोस्।</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssignmentSubmitted(true);
+                            toast.success("गृहकार्य सफलतापूर्वक आचार्य मूल्याङ्कनका लागि पेश गरियो!");
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-black shrink-0 ${
+                            assignmentSubmitted
+                              ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/30"
+                              : "bg-primary text-white"
+                          }`}
+                        >
+                          {assignmentSubmitted ? "गृहकार्य पेश गरियो (Submitted)" : "गृहकार्य बुझाउनुहोस्"}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

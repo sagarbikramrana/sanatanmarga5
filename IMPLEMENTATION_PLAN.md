@@ -13,6 +13,10 @@ Sanatan Marga has achieved stable production-grade operations across core news d
 - [x] **Safe JSON Extraction & Error Hardening**: `extractJson()` fortified against non-string inputs; safe optional chaining for event listeners across all banners and badges.
 - [x] **Safe Broadcast Notification Handlers**: Asynchronous broadcast operations decoupled from the critical editor save path to eliminate unhandled promise rejections.
 - [x] **Bilingual Infrastructure**: Comprehensive Nepali / English localization with live phonetic transliteration.
+- [x] **Phase 4B.1 / 4B.1W Editorial Workflow & Snapshot CAS Fencing**: Server-authoritative candidate pipeline, monotonic publication generations, and R2/local CAS manifest protection.
+- [x] **Phase 1A / 1B / 1C Scheduled Publishing OS & Editorial Scheduling UI**: Distributed lease claiming, bounded config validation (`validateAndNormalizeSchedulerConfig`), canonical `publishApprovedCandidate()` execution, and Schedule/Cancel modals in Editorial Command Center & Article Editor.
+- [x] **Phase 4B.2 Structured Telemetry & Multi-Platform Deployment Readiness**: Scoped Sentry/in-memory telemetry (`CAS_CONFLICT`, `OUTBOX_FAILURE`, `SCHEDULER_FAILURE`, `RATE_LIMIT_FALLBACK`), `/api/admin/telemetry/diagnostics`, and turnkey configs for GitHub Actions, Render, Vercel, Netlify, and Cloud Run.
+- [x] **Phase 9 Ask Sanatan Grounded Research Console**: Interactive primary-corpus research engine (`/api/ask-sanatan` & `/ask-sanatan`) grounded in Saraswati Knowledge OS, SGIS epigraphy/manuscripts, and Vedic scriptures with verified citations.
 
 ---
 

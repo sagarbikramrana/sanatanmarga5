@@ -42,7 +42,8 @@ export const getApiBaseUrl = (): string => {
     return "http://localhost:3000";
   }
 
-  const viteApiBase = (import.meta as any).env?.VITE_API_BASE_URL;
+  const metaEnv = typeof import.meta !== "undefined" ? (import.meta as any)?.env : undefined;
+  const viteApiBase = metaEnv?.VITE_API_BASE_URL;
   if (isValidApiBase(viteApiBase)) {
     return viteApiBase.trim().replace(/\/$/, "");
   }

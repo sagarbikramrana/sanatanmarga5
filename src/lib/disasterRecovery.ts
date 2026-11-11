@@ -198,10 +198,11 @@ export async function getCollectionDataForBackup(colName: string): Promise<any[]
       const itemData = d.data();
       const cleanedData: Record<string, any> = {};
       for (const [key, val] of Object.entries(itemData)) {
-        if (val && typeof val === "object" && typeof val.toDate === "function") {
-          cleanedData[key] = val.toDate().toISOString();
-        } else if (val && typeof val === "object" && val.seconds !== undefined && val.nanoseconds !== undefined) {
-          cleanedData[key] = new Date(val.seconds * 1000).toISOString();
+        const valObj = val as any;
+        if (valObj && typeof valObj === "object" && typeof valObj.toDate === "function") {
+          cleanedData[key] = valObj.toDate().toISOString();
+        } else if (valObj && typeof valObj === "object" && valObj.seconds !== undefined && valObj.nanoseconds !== undefined) {
+          cleanedData[key] = new Date(valObj.seconds * 1000).toISOString();
         } else {
           cleanedData[key] = val;
         }

@@ -20,7 +20,7 @@ import type {
 import Header from "@/src/components/layout/Header";
 import Footer from "@/src/components/layout/Footer";
 import { toast } from "sonner";
-
+import { NEPAL_PROVINCES, NEPAL_77_DISTRICTS } from "@/src/constants/nepalGeography";
 import { useConnectivity } from "@/src/lib/connectivity";
 
 export default function RadioPage() {
@@ -44,9 +44,62 @@ export default function RadioPage() {
   } = useMediaOS();
 
   const [snapshot, setSnapshot] = useState<RadioSnapshotData | null>(null);
-  const [activeTab, setActiveTab] = useState<"now_playing" | "live" | "programs" | "news" | "podcasts" | "schedule" | "queue">("now_playing");
+  const [activeTab, setActiveTab] = useState<"now_playing" | "live" | "programs" | "news" | "archives" | "presenters" | "podcasts" | "schedule" | "queue">("now_playing");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedProvince, setSelectedProvince] = useState<string>("all");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
+  const [streamSource, setStreamSource] = useState<"primary" | "backup">("primary");
+  const [bitrateMode, setBitrateMode] = useState<"128kbps" | "64kbps" | "32kbps">("128kbps");
+  const [transcriptQuery, setTranscriptQuery] = useState<string>("");
+  const [radioArchives] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("sanatan_radio_archives") : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      {
+        id: "arch-1",
+        titleNe: "प्रभात सनातन चिन्तन: वेद र आधुनिक विज्ञान",
+        titleEn: "Morning Sanatan Reflection: Veda & Modern Science",
+        hostNe: "आचार्य डा. वासुदेव खनाल",
+        recordedDate: "२०८३ भदौ ११ • 06:00 NPT",
+        duration: "45:00",
+        transcriptNe: "ऋग्वेदको नासदीय सूक्तले सृष्टिको उत्पत्ति र ब्रह्माण्डीय चेतनाको गहन वैज्ञानिक विवेचना प्रस्तुत गर्दछ। नेपालका प्राचीन पाण्डुलिपिहरूमा यसको विस्तृत व्याख्या पाइन्छ।",
+        transcriptEn: "The Nasadiya Sukta of the Rigveda presents a profound cosmological inquiry into creation and consciousness, preserved across Nepal's classical palm-leaf manuscripts."
+      },
+      {
+        id: "arch-2",
+        titleNe: "नेपाल मण्डल सम्पदा र अभिलेख विशेष संवाद",
+        titleEn: "Nepal Mandala Heritage & Epigraphy Special Dispatch",
+        hostNe: "सम्पादक रमेश अधिकारी",
+        recordedDate: "२०८३ भदौ १० • 18:00 NPT",
+        duration: "30:00",
+        transcriptNe: "चाँगुनारायणदेखि पशुपतिनाथसम्मका लिच्छविकालीन शिलालेखहरूले नेपालको न्यायप्रणाली, जलप्रणाली र सांस्कृतिक सहिष्णुताको प्रामाणिक इतिहास बोकेका छन्।",
+        transcriptEn: "Licchavi inscriptions from Changu Narayan to Pashupatinath document Nepal's legal institutions, water conduits (Hiti), and civilizational continuity."
+      },
+      {
+        id: "arch-3",
+        titleNe: "७ प्रदेश ७७ जिल्ला नागरिक सरोकार बुलेटिन",
+        titleEn: "7-Province 77-District Civic Bulletin Archive",
+        hostNe: "सुनिता शर्मा (समाचार प्रमुख)",
+        recordedDate: "२०८३ भदौ १० • 20:00 NPT",
+        duration: "25:00",
+        transcriptNe: "कोशीदेखि सुदूरपश्चिमसम्मका ७७ वटै जिल्लामा शिक्षा, पूर्वाधार, जलविद्युत् र स्थानीय सम्पदा संरक्षणका प्रमुख उपलब्धिहरूको समीक्षा।",
+        transcriptEn: "Comprehensive civic review covering education, hydropower infrastructure, and heritage conservation across all 7 provinces and 77 districts."
+      }
+    ];
+  });
+  const [radioPresenters] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("sanatan_radio_presenters") : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { nameNe: "आचार्य डा. वासुदेव खनाल", roleNe: "मुख्य वैदिक प्रस्तोता (Lead Vedic Host)", shift: "06:00 - 09:00 NPT" },
+      { nameNe: "रमेश अधिकारी", roleNe: "कार्यकारी रेडियो निर्माता (Executive Radio Producer)", shift: "09:00 - 15:00 NPT" },
+      { nameNe: "सुनिता शर्मा", roleNe: "राष्ट्रिय समाचार बुलेटिन प्रमुख (Chief News Anchor)", shift: "15:00 - 21:00 NPT" }
+    ];
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [generatingIntro, setGeneratingIntro] = useState<boolean>(false);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
@@ -254,25 +307,61 @@ export default function RadioPage() {
           </div>
         </div>
 
-        {/* DISTRICT FEEDS HUB SELECTOR */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar bg-accent/30 p-1.5 rounded-xl border border-border">
-          <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-amber-500 whitespace-nowrap">
-            <MapPin size={14} />
-            <span>{isNe ? "जिल्ला रेडियो फिड:" : "District Radio Feed:"}</span>
+        {/* NATIONAL, 7-PROVINCE & 77-DISTRICT BROADCAST DISTRIBUTION SELECTOR */}
+        <div className="bg-accent/30 p-3 rounded-xl border border-border space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-500 whitespace-nowrap">
+                <MapPin size={14} />
+                <span>{isNe ? "राष्ट्रिय / ७ प्रदेश प्रसारण:" : "National / 7 Provinces:"}</span>
+              </div>
+              <button
+                onClick={() => { setSelectedProvince("all"); setSelectedDistrict("all"); }}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                  selectedProvince === "all"
+                    ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
+                    : "bg-background/80 hover:bg-background text-muted-foreground"
+                }`}
+              >
+                {isNe ? "राष्ट्रिय (१०८.० MHz)" : "National (108.0 MHz)"}
+              </button>
+              {NEPAL_PROVINCES.map((prov) => (
+                <button
+                  key={prov.id}
+                  onClick={() => { setSelectedProvince(prov.id); setSelectedDistrict("all"); }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                    selectedProvince === prov.id
+                      ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
+                      : "bg-background/80 hover:bg-background text-muted-foreground"
+                  }`}
+                >
+                  {isNe ? `${prov.nameNe} (${prov.radioRelayMhz})` : `${prov.nameEn} (${prov.radioRelayMhz})`}
+                </button>
+              ))}
+            </div>
+
+            {/* 77-District Dropdown Selector */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                {isNe ? "७७ जिल्ला छनोट:" : "77-District Filter:"}
+              </label>
+              <select
+                value={selectedDistrict}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
+                className="px-3 py-1 rounded-lg bg-background border border-border text-xs font-semibold text-foreground"
+              >
+                <option value="all">{isNe ? `सबै जिल्ला (${NEPAL_77_DISTRICTS.length} Districts)` : `All ${NEPAL_77_DISTRICTS.length} Districts`}</option>
+                {(selectedProvince === "all"
+                  ? NEPAL_77_DISTRICTS
+                  : NEPAL_77_DISTRICTS.filter((d) => d.provinceId === selectedProvince)
+                ).map((dist) => (
+                  <option key={dist.id} value={dist.id}>
+                    {isNe ? `${dist.nameNe} (${dist.provinceNameNe})` : `${dist.nameEn} (${dist.provinceNameEn})`}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          {districtFeeds.map(d => (
-            <button
-              key={d.id}
-              onClick={() => setSelectedDistrict(d.id)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                selectedDistrict === d.id
-                  ? "bg-amber-500 text-slate-950 font-bold shadow-sm"
-                  : "bg-background/80 hover:bg-background text-muted-foreground"
-              }`}
-            >
-              {isNe ? d.nameNe : d.nameEn}
-            </button>
-          ))}
         </div>
 
         {/* HERO BROADCAST DESK */}
@@ -401,7 +490,37 @@ export default function RadioPage() {
 
                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
                     <Wifi size={12} className="text-emerald-500" />
-                    <span>ZenoFM Live HD 128kbps</span>
+                    <span>
+                      {streamSource === "primary" ? "Primary Stream" : "Backup Failover"} • {bitrateMode}
+                    </span>
+                  </div>
+
+                  {/* Primary / Backup Source & Low-Bandwidth Selector */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setStreamSource(streamSource === "primary" ? "backup" : "primary")}
+                      className="px-2 py-0.5 rounded bg-accent border border-border text-[10px] font-bold text-foreground hover:border-amber-500/40"
+                      title="Switch between Primary and Backup Streaming Sources"
+                    >
+                      {streamSource === "primary"
+                        ? (isNe ? "मुख्य स्रोत (Primary)" : "Primary Source")
+                        : (isNe ? "ब्याकअप स्रोत (Backup)" : "Backup Source")}
+                    </button>
+                    {(["128kbps", "64kbps", "32kbps"] as const).map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => setBitrateMode(rate)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                          bitrateMode === rate
+                            ? "bg-amber-500/20 text-amber-500 border-amber-500/40"
+                            : "bg-background text-muted-foreground border-border"
+                        }`}
+                      >
+                        {rate === "32kbps" ? "32k Eco" : rate}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -437,6 +556,8 @@ export default function RadioPage() {
               { id: "live", labelNe: "लाइभ स्ट्रिमहरू", labelEn: "Live Streams", icon: Wifi },
               { id: "programs", labelNe: "कार्यक्रमहरू", labelEn: "Programs", icon: Mic },
               { id: "news", labelNe: "श्रव्य समाचार", labelEn: "News Bulletins", icon: Layers },
+              { id: "archives", labelNe: "रेकर्डिङ र ट्रान्सक्रिप्ट", labelEn: "Archives & Transcripts", icon: Bookmark },
+              { id: "presenters", labelNe: "प्रस्तोता र जिङ्गल", labelEn: "Presenters & Jingles", icon: Award },
               { id: "podcasts", labelNe: "पोडकास्टहरू", labelEn: "Podcasts", icon: Headphones },
               { id: "schedule", labelNe: "साप्ताहिक तालिका", labelEn: "Schedule", icon: Calendar },
               { id: "queue", labelNe: "लाइन (Queue)", labelEn: "Queue", icon: ListMusic },
@@ -731,6 +852,121 @@ export default function RadioPage() {
                     {isNe ? "रेडियो बुलेटिनका लागि प्रमाणित समाचार उपलब्ध छैन।" : "No verified stories are currently available for the radio bulletin."}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4B: RECORDED ARCHIVES & SEARCHABLE TRANSCRIPTS */}
+        {activeTab === "archives" && (
+          <div className="space-y-6">
+            <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Bookmark size={18} className="text-amber-500" />
+                    <span>{isNe ? "रेकर्ड गरिएका प्रसारण तथा खोजयोग्य ट्रान्सक्रिप्ट (Recorded Broadcasts & Searchable Transcripts)" : "Recorded Broadcast Archives & Searchable Transcripts"}</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isNe ? "प्रत्येक प्रसारणको पूर्ण नेपाली र अङ्ग्रेजी ट्रान्सक्रिप्ट खोज्नुहोस् र पुनः सुन्नुहोस्।" : "Search across bilingual broadcast transcripts and replay archived radio recordings."}
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={transcriptQuery}
+                  onChange={(e) => setTranscriptQuery(e.target.value)}
+                  placeholder={isNe ? "ट्रान्सक्रिप्टमा शब्द खोज्नुहोस्..." : "Search audio transcripts..."}
+                  className="px-3.5 py-2 rounded-xl bg-background border border-border text-xs w-full sm:w-64"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {radioArchives
+                  .filter((item: any) => {
+                    if (!transcriptQuery.trim()) return true;
+                    const q = transcriptQuery.toLowerCase();
+                    return (
+                      (item.titleNe || "").toLowerCase().includes(q) ||
+                      (item.titleEn || "").toLowerCase().includes(q) ||
+                      (item.transcriptNe || "").toLowerCase().includes(q) ||
+                      (item.transcriptEn || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .map((rec: any) => (
+                    <div key={rec.id} className="p-4 rounded-xl bg-accent/20 border border-border space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-bold text-foreground">{isNe ? rec.titleNe : (rec.titleEn || rec.titleNe)}</div>
+                          <div className="text-[11px] text-muted-foreground">{rec.hostNe || "सनातन रेडियो"} • {rec.recordedDate || rec.date}</div>
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                          {rec.duration}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-lg bg-background/80 border border-border/60 text-xs text-muted-foreground space-y-1">
+                        <div className="font-bold text-[10px] uppercase text-amber-500">Transcript Excerpt:</div>
+                        <p>{isNe ? rec.transcriptNe : (rec.transcriptEn || rec.transcriptNe)}</p>
+                      </div>
+                      <button
+                        onClick={handlePlayStationStream}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5"
+                      >
+                        <Play size={12} />
+                        <span>{isNe ? "रेकर्डिङ सुन्नुहोस्" : "Play Recording"}</span>
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4C: PRESENTERS, PRODUCERS & STATION JINGLES */}
+        {activeTab === "presenters" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                <Award size={18} className="text-amber-500" />
+                <span>{isNe ? "प्रस्तोता तथा निर्माता टोली (Presenters & Producers)" : "Broadcast Presenters & Producers"}</span>
+              </h3>
+              <div className="space-y-3">
+                {radioPresenters.map((host: any, i: number) => (
+                  <div key={host.id || i} className="p-3.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-foreground">{host.nameNe}</div>
+                      <div className="text-xs text-muted-foreground">{host.roleNe || host.role}</div>
+                    </div>
+                    <span className="text-xs font-mono text-amber-500">{host.shift}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
+                <Sparkles size={18} className="text-amber-500" />
+                <span>{isNe ? "स्टेशन पहिचान, जिङ्गल र प्रोमो (Station IDs & Jingles)" : "Station IDs, Jingles & Promos"}</span>
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { titleNe: "सनातन रेडियो १०८.० MHz मुख्य पहिचान (Top-of-Hour ID)", duration: "00:18" },
+                  { titleNe: "वैदिक शङ्खध्वनि र मङ्गल धुन (Sacred Conch & Flute Jingle)", duration: "00:24" },
+                  { titleNe: "ब्रेकिङ न्युज अलर्ट स्टिङ्गर (Breaking News Alert Stinger)", duration: "00:10" }
+                ].map((jingle, i) => (
+                  <div key={i} className="p-3.5 rounded-xl bg-accent/30 border border-border flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-foreground">{jingle.titleNe}</div>
+                      <div className="text-xs font-mono text-muted-foreground">Duration: {jingle.duration}</div>
+                    </div>
+                    <button
+                      onClick={handlePlayStationIntro}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-slate-950 font-bold text-xs flex items-center gap-1"
+                    >
+                      <Play size={12} />
+                      <span>Play</span>
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

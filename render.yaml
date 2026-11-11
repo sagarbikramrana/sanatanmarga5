@@ -4,13 +4,18 @@ services:
     env: node
     plan: free
     region: singapore
-    buildCommand: npm install && npm run build
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm install --include=dev && npm run build
     startCommand: npm start
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=2048"
       - key: PORT
-        value: 10000
+        value: "10000"

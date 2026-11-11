@@ -26,7 +26,8 @@ import { snapshotEngine } from "@/src/services/snapshotEngine";
 import { CANONICAL_CATEGORIES, normalizeArticleCategory } from "@/src/constants/categories";
 import { continuityEngine } from "@/src/lib/continuityEngine";
 import { contentEventBus } from "@/src/lib/contentEventBus";
-import { offlineQueue } from "@/src/lib/offlineQueue";
+import { offlineQueue, setDocWithQueue } from "@/src/lib/offlineQueue";
+import { db, doc } from "@/src/lib/firebase";
 import { useLanguage } from "@/src/context/LanguageContext";
 import { FeatureGate } from "@/src/context/FeatureControlContext";
 import { preloadAllRecentNewsAudio } from "@/src/services/ttsClient";
@@ -154,12 +155,16 @@ export default function HomePage() {
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-    if (active.id !== over.id && layout) {
+    if (over && active.id !== over.id && layout) {
       const oldIndex = layout.findIndex((s) => s.id === active.id);
       const newIndex = layout.findIndex((s) => s.id === over.id);
       const newLayout = arrayMove(layout, oldIndex, newIndex);
       setLayout(newLayout);
-      // TODO: Save newLayout to Firestore
+      safeLocalStorage.setItem("sanatan_homepage_layout", JSON.stringify(newLayout));
+      setDocWithQueue(doc(db, "settings", "homepageLayout"), {
+        sections: newLayout,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
     }
   };
 

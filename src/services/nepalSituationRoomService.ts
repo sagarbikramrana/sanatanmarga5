@@ -291,54 +291,6 @@ export class NepalSituationRoomService {
       },
       commodities: [
         {
-          id: "com-gold-24k",
-          nameNe: "छापावाल सुन (Fine Gold 24K)",
-          nameEn: "Fine Gold 24K",
-          rateFormatted: "रु १,४८,५००",
-          unit: "प्रति तोला (per Tola / 11.66g)",
-          changeFormatted: "+रु ५०० (दिनको कारोबार)",
-          category: "GOLD_SILVER",
-          provenance: {
-            sourceId: "feneosida_gold",
-            sourceName: "नेपाल सुनचाँदी व्यवसायी महासंघ (FENEOSIDA)",
-            sourceAuthority: "Federation of Nepal Gold and Silver Dealers' Association",
-            sourceUrl: "https://feneosida.org",
-            fetchedAt: nowIso,
-            verifiedAt: nowIso,
-            verificationStatus: "verified",
-            freshnessStatus: "fresh",
-            provenanceType: "official",
-            lastVerifiedNpt: nptTime,
-            updatedAgo: "आज बिहान १०:०० NPT",
-            confidenceScoreText: "Verified",
-            telemetryProtocol: "REST_API"
-          }
-        },
-        {
-          id: "com-silver",
-          nameNe: "चाँदी (Fine Silver)",
-          nameEn: "Silver",
-          rateFormatted: "रु १,८५०",
-          unit: "प्रति तोला (per Tola)",
-          changeFormatted: "स्थिर (Unchanged)",
-          category: "GOLD_SILVER",
-          provenance: {
-            sourceId: "feneosida_silver",
-            sourceName: "नेपाल सुनचाँदी व्यवसायी महासंघ (FENEOSIDA)",
-            sourceAuthority: "Federation of Nepal Gold and Silver Dealers' Association",
-            sourceUrl: "https://feneosida.org",
-            fetchedAt: nowIso,
-            verifiedAt: nowIso,
-            verificationStatus: "verified",
-            freshnessStatus: "fresh",
-            provenanceType: "official",
-            lastVerifiedNpt: nptTime,
-            updatedAgo: "आज बिहान १०:०० NPT",
-            confidenceScoreText: "Verified",
-            telemetryProtocol: "REST_API"
-          }
-        },
-        {
           id: "com-forex-usd",
           nameNe: "अमेरिकी डलर (USD / NPR)",
           nameEn: "US Dollar Reference Rate",
@@ -363,27 +315,27 @@ export class NepalSituationRoomService {
           }
         },
         {
-          id: "com-fuel-petrol",
-          nameNe: "पेट्रोल (Petrol MS)",
-          nameEn: "Motor Spirit (Petrol)",
-          rateFormatted: "रु १७५.००",
-          unit: "प्रति लिटर (काठमाडौँ उपत्यका)",
-          changeFormatted: "स्थिर (Stable Auto-Pricing)",
-          category: "FUEL",
+          id: "com-forex-eur",
+          nameNe: "युरो (EUR / NPR)",
+          nameEn: "Euro Reference Rate",
+          rateFormatted: "खरिद: १४४.२० | बिक्री: १४४.८५",
+          unit: "१ EUR",
+          changeFormatted: "-०.२२% (दैनिक विनिमय)",
+          category: "FOREX",
           provenance: {
-            sourceId: "noc_fuel",
-            sourceName: "नेपाल आयल निगम (NOC)",
-            sourceAuthority: "Nepal Oil Corporation Automated Pricing System",
-            sourceUrl: "https://noc.org.np",
+            sourceId: "nrb_forex",
+            sourceName: "नेपाल राष्ट्र बैंक (NRB)",
+            sourceAuthority: "Central Bank of Nepal Foreign Exchange Dept",
+            sourceUrl: "https://nrb.org.np",
             fetchedAt: nowIso,
             verifiedAt: nowIso,
             verificationStatus: "verified",
-            freshnessStatus: "fresh",
-            provenanceType: "official",
+            freshnessStatus: "realtime",
+            provenanceType: "realtime-ingest",
             lastVerifiedNpt: nptTime,
-            updatedAgo: "१५ दिनको समायोजन",
+            updatedAgo: "३ मिनेट अगाडि (3 min ago)",
             confidenceScoreText: "Verified",
-            telemetryProtocol: "GOV_FEED"
+            telemetryProtocol: "REST_API"
           }
         }
       ],

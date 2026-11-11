@@ -35,6 +35,20 @@ export interface Course {
   isPopular?: boolean;
 }
 
+export const GURUKUL_SCHOOLS = [
+  { id: "scripture", nameNe: "वैदिक दर्शन विद्यापीठ", nameEn: "School of Vedic Philosophy", descNe: "वेद, उपनिषद्, गीता र षड्दर्शन", dean: "डा. स्वामी रामानन्द", coursesCount: 8, studentsCount: "१,४२०" },
+  { id: "language", nameNe: "संस्कृत र अभिलेख विद्यापीठ", nameEn: "School of Sanskrit & SGIS", descNe: "पाणिनीय व्याकरण, लिच्छवि लिपि र पाण्डुलिपि", dean: "आचार्य विष्णुप्रसाद शर्मा", coursesCount: 6, studentsCount: "९८०" },
+  { id: "history", nameNe: "सभ्यता र इतिहास विद्यापीठ", nameEn: "School of Civilizational Studies", descNe: "नेपाल मण्डल र हिमवत्खण्डको प्रामाणिक इतिहास", dean: "प्रा.डा. दिनेशराज पन्त", coursesCount: 5, studentsCount: "१,१५०" },
+  { id: "heritage", nameNe: "सम्पदा तथा वास्तुकला विद्यापीठ", nameEn: "School of Sacred Architecture", descNe: "मन्दिर वास्तुकला, मूर्तिशास्त्र र संरक्षण", dean: "संस्कृतिविद् सत्यमोहन जोशी स्मृति अध्ययन कक्ष", coursesCount: 4, studentsCount: "७६०" }
+];
+
+export const ACHARYA_FACULTY = [
+  { id: "ach-1", nameNe: "डा. स्वामी रामानन्द", nameEn: "Dr. Swami Ramananda", titleNe: "कुलगुरु तथा वेदान्त आचार्य", school: "वैदिक दर्शन विद्यापीठ", experience: "३०+ वर्ष", coursesCount: 5, verified: true },
+  { id: "ach-2", nameNe: "प्रा.डा. दिनेशराज पन्त", nameEn: "Prof. Dr. Dinesh Raj Pant", titleNe: "इतिहास तथा अभिलेख शिरोमणि", school: "सभ्यता र इतिहास विद्यापीठ", experience: "४०+ वर्ष", coursesCount: 4, verified: true },
+  { id: "ach-3", nameNe: "आचार्य विष्णुप्रसाद शर्मा", nameEn: "Acharya Bishnu Prasad Sharma", titleNe: "पाणिनीय व्याकरण प्राध्यापक", school: "संस्कृत र अभिलेख विद्यापीठ", experience: "२२+ वर्ष", coursesCount: 6, verified: true },
+  { id: "ach-4", nameNe: "डा. वीणा पौडेल", nameEn: "Dr. Veena Poudel", titleNe: "मूर्तिशास्त्र र सम्पदा विशेषज्ञ", school: "सम्पदा तथा वास्तुकला विद्यापीठ", experience: "१८+ वर्ष", coursesCount: 3, verified: true }
+];
+
 export const SAMPLE_COURSES: Course[] = [
   {
     id: "gita-intro",
@@ -96,8 +110,22 @@ export default function AcademyPage() {
   const { language } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [courses] = useState<Course[]>(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("sanatan_academy_courses") : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return SAMPLE_COURSES;
+  });
+  const [facultyList] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("sanatan_academy_acharyas") : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ACHARYA_FACULTY;
+  });
 
-  const filteredCourses = SAMPLE_COURSES.filter(course => {
+  const filteredCourses = courses.filter(course => {
     const matchesCategory = selectedCategory === "all" || course.category === selectedCategory;
     const searchCorpus = [course.titleNepali, course.titleEnglish, course.instructor].join(" ").toLowerCase();
     const matchesSearch = searchCorpus.includes(searchTerm.toLowerCase());
@@ -156,6 +184,32 @@ export default function AcademyPage() {
                 <span>अकाडेमी पास</span>
               </Link>
             </div>
+          </div>
+
+          {/* GURUKUL ACADEMIC SCHOOLS (विद्यापीठहरू) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+            {[
+              { id: "scripture", titleNe: "वैदिक दर्शन विद्यापीठ", titleEn: "School of Vedic Philosophy", descNe: "वेद, उपनिषद्, गीता र षड्दर्शन" },
+              { id: "language", titleNe: "संस्कृत र अभिलेख विद्यापीठ", titleEn: "School of Sanskrit & SGIS", descNe: "पाणिनीय व्याकरण, लिच्छवि लिपि र पाण्डुलिपि" },
+              { id: "history", titleNe: "सभ्यता र इतिहास विद्यापीठ", titleEn: "School of Civilizational Studies", descNe: "नेपाल मण्डल र हिमवत्खण्डको प्रामाणिक इतिहास" },
+              { id: "heritage", titleNe: "सम्पदा तथा वास्तुकला विद्यापीठ", titleEn: "School of Sacred Architecture", descNe: "मन्दिर वास्तुकला, मूर्तिशास्त्र र संरक्षण" },
+            ].map((school) => (
+              <button
+                key={school.id}
+                type="button"
+                onClick={() => setSelectedCategory(selectedCategory === school.id ? "all" : school.id)}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  selectedCategory === school.id
+                    ? "bg-primary/10 border-primary shadow-sm"
+                    : "bg-muted-area/40 border-border-theme hover:border-primary/40"
+                }`}
+              >
+                <div className="text-xs font-black text-card-foreground">
+                  {language === "en" ? school.titleEn : school.titleNe}
+                </div>
+                <div className="text-[11px] text-muted-text mt-1">{school.descNe}</div>
+              </button>
+            ))}
           </div>
 
           {/* Search & Filter Bar */}
@@ -264,6 +318,70 @@ export default function AcademyPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* ACHARYA DIRECTORY & GURUKUL ADMISSIONS / SCHOLARSHIPS */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-4">
+          <div className="lg:col-span-7 bg-card border border-border-theme rounded-3xl p-6 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border-theme pb-3">
+              <h2 className="text-base font-black text-card-foreground flex items-center gap-2">
+                <Users size={18} className="text-primary" />
+                <span>आचार्य तथा गुरुवृन्द (Gurukul Acharyas & Faculty)</span>
+              </h2>
+              <span className="text-[11px] font-bold text-emerald-500">प्रमाणीकृत विद्वत् परिषद्</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {facultyList.map((acharya: any, idx: number) => (
+                <div key={acharya.id || idx} className="p-3.5 rounded-2xl bg-muted-area/40 border border-border-theme space-y-1">
+                  <div className="text-xs font-black text-card-foreground">{acharya.nameNe || acharya.name}</div>
+                  <div className="text-[11px] text-primary font-bold">{acharya.titleNe || acharya.specialty}</div>
+                  <div className="text-[10px] text-muted-text">{acharya.school}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-5 bg-card border border-border-theme rounded-3xl p-6 space-y-4 shadow-sm flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-border-theme pb-3">
+                <h2 className="text-base font-black text-card-foreground flex items-center gap-2">
+                  <Sparkles size={18} className="text-amber-500" />
+                  <span>छात्रवृत्ति, भर्ना र हाजिरी (Scholarships & Admissions)</span>
+                </h2>
+              </div>
+              <p className="text-xs text-muted-text leading-relaxed">
+                दुर्गम जिल्लाका जेहेन्दार विद्यार्थी, संस्कृत गुरुकुलका बटुक र अनुसन्धानकर्ताहरूका लागि १००% छात्रवृत्ति (Merit & Heritage Scholarship) तथा डिजिटल हाजिरी र दक्षता अभिलेख (Competency Ledger) उपलब्ध छ।
+              </p>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-card-foreground">
+                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                  <span>प्रत्यक्ष र रेकर्ड गरिएका गुरुकुल कक्षा (Live & Recorded Classes)</span>
+                </div>
+                <div className="flex items-center gap-2 text-card-foreground">
+                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                  <span>SGIS प्राचीन पाण्डुलिपि सन्दर्भ र टाइमस्ट्याम्प नोट्स</span>
+                </div>
+                <div className="flex items-center gap-2 text-card-foreground">
+                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                  <span>क्राइप्टोग्राफिक SHA-256 प्रमाणपत्र र हाजिरी ट्र्याकिङ</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-3">
+              <Link
+                to="/verify-certificate"
+                className="flex-1 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 font-black text-xs text-center hover:bg-amber-500 hover:text-slate-950 transition-colors"
+              >
+                प्रमाणपत्र जाँच (Verify Certificate)
+              </Link>
+              <Link
+                to="/training"
+                className="flex-1 py-2.5 rounded-xl bg-primary text-white font-black text-xs text-center hover:bg-primary/90 transition-colors"
+              >
+                भर्ना र तालिम (Enroll Now)
+              </Link>
+            </div>
+          </div>
         </div>
       </main>
 

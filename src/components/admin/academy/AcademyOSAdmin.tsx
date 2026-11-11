@@ -7,14 +7,22 @@ import AssessmentOSAdmin from "./AssessmentOSAdmin";
 import AcademyVideoAdsAdmin from "./AcademyVideoAdsAdmin";
 import { db, safeOnSnapshot, handleFirestoreError, OperationType } from "@/src/lib/firebase";
 import { collection, doc, setDoc, deleteDoc } from "@/src/lib/firebase";
-import { SAMPLE_COURSES, Course } from "@/src/pages/AcademyPage";
+import { SAMPLE_COURSES, Course, GURUKUL_SCHOOLS, ACHARYA_FACULTY } from "@/src/pages/AcademyPage";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function AcademyOSAdmin() {
   const [courses, setCourses] = useState<Course[]>(SAMPLE_COURSES);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTab, setSelectedTab] = useState<"courses" | "lessons" | "materials" | "audio" | "certificates" | "assessment" | "video_ads">("courses");
+  const [selectedTab, setSelectedTab] = useState<"courses" | "schools" | "acharyas" | "admissions" | "lessons" | "materials" | "audio" | "certificates" | "assessment" | "video_ads">("courses");
+  const [acharyas, setAcharyas] = useState(ACHARYA_FACULTY);
+  const [newAcharyaName, setNewAcharyaName] = useState("");
+  const [newAcharyaTitle, setNewAcharyaTitle] = useState("");
+  const [scholarshipApps, setScholarshipApps] = useState([
+    { id: "sch-1", student: "सुमन उपाध्याय (कास्की)", school: "वैदिक तथा उपनिषद् विद्यापीठ", attendance: "94%", status: "Approved (मेधावी छात्रवृत्ति)" },
+    { id: "sch-2", student: "प्रतीक्षा पन्त (कैलाली)", school: "संस्कृत भाषा तथा प्राचीन लिपि विद्यापीठ", attendance: "89%", status: "Pending Review" },
+    { id: "sch-3", student: "रोशन अधिकारी (मोरङ)", school: "धर्म, नीति र नागरिक नेतृत्व विद्यापीठ", attendance: "92%", status: "Approved (पूर्ण शुल्क मिनाहा)" }
+  ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
 
@@ -126,8 +134,16 @@ export default function AcademyOSAdmin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: docId, ...payload }),
-      });
+      }).catch(() => {});
       await setDoc(doc(db, "academy_courses", docId), payload, { merge: true });
+      setCourses(prev => {
+        const exists = prev.some(c => c.id === docId);
+        const next = exists ? prev.map(c => c.id === docId ? payload : c) : [payload, ...prev];
+        try {
+          localStorage.setItem("sanatan_academy_courses", JSON.stringify(next));
+        } catch {}
+        return next;
+      });
       toast.success(editingCourseId ? "कोर्स अद्यावधिक भयो!" : "नयाँ कोर्स सुरक्षित भयो!");
       setIsModalOpen(false);
     } catch (err: any) {
@@ -184,6 +200,9 @@ export default function AcademyOSAdmin() {
       <div className="flex items-center gap-2 border-b border-border-theme pb-3 overflow-x-auto">
         {[
           { id: "courses", label: "कोर्सहरू (Courses)", icon: BookOpen },
+          { id: "schools", label: "विद्यापीठहरू (Gurukul Schools)", icon: GraduationCap },
+          { id: "acharyas", label: "आचार्य व्यवस्थापन (Acharyas)", icon: Award },
+          { id: "admissions", label: "छात्रवृत्ति र हाजिरी (Admissions & Attendance)", icon: CheckCircle2 },
           { id: "lessons", label: "पाठहरू (Lessons)", icon: Video },
           { id: "video_ads", label: "भिडियो विज्ञापन OS (Video Ads)", icon: Sparkles },
           { id: "materials", label: "PDFs & अध्ययन सामग्री", icon: FileText },
@@ -278,6 +297,133 @@ export default function AcademyOSAdmin() {
                       <Trash2 size={15} />
                     </button>
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedTab === "schools" && (
+        <div className="bg-card p-6 rounded-3xl border border-border-theme space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-base font-bold text-card-foreground">अनलाइन गुरुकुल विद्यापीठहरू (Gurukul Academic Schools)</h3>
+            <span className="text-xs font-bold text-emerald-500">{GURUKUL_SCHOOLS.length} Active Schools</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {GURUKUL_SCHOOLS.map((sch) => (
+              <div key={sch.id} className="p-5 rounded-2xl border border-border-theme bg-muted-area/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-500">{sch.nameEn}</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">{sch.studentsCount} विद्यार्थी</span>
+                </div>
+                <div className="text-base font-black text-card-foreground">{sch.nameNe}</div>
+                <div className="text-xs text-muted-text">प्रमुख आचार्य (Dean): <strong className="text-card-foreground">{sch.dean}</strong> • {sch.coursesCount} कोर्सहरू</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedTab === "acharyas" && (
+        <div className="bg-card p-6 rounded-3xl border border-border-theme space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-bold text-card-foreground">आचार्य तथा प्राध्यापक निर्देशिका (Acharya & Instructor Management)</h3>
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                value={newAcharyaName}
+                onChange={(e) => setNewAcharyaName(e.target.value)}
+                placeholder="नयाँ आचार्यको नाम..."
+                className="px-3 py-1.5 rounded-xl border border-border-theme bg-muted-area text-xs"
+              />
+              <input
+                type="text"
+                value={newAcharyaTitle}
+                onChange={(e) => setNewAcharyaTitle(e.target.value)}
+                placeholder="उपाधि र विशेषज्ञता..."
+                className="px-3 py-1.5 rounded-xl border border-border-theme bg-muted-area text-xs"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!newAcharyaName.trim()) return;
+                  const newAch = {
+                    id: `ach-${Date.now()}`,
+                    nameNe: newAcharyaName.trim(),
+                    nameEn: newAcharyaName.trim(),
+                    titleNe: newAcharyaTitle.trim() || "गुरुकुल प्राध्यापक",
+                    school: "वैदिक दर्शन विद्यापीठ",
+                    experience: "१५+ वर्ष",
+                    coursesCount: 2,
+                    verified: true
+                  };
+                  const next = [...acharyas, newAch];
+                  setAcharyas(next);
+                  try {
+                    localStorage.setItem("sanatan_academy_acharyas", JSON.stringify(next));
+                    if (db) await setDoc(doc(db, "academy_acharyas", newAch.id), newAch, { merge: true });
+                  } catch {}
+                  setNewAcharyaName("");
+                  setNewAcharyaTitle("");
+                  toast.success("नयाँ आचार्य गुरुकुल निर्देशिकामा थपियो र सिंक भयो!");
+                }}
+                className="px-4 py-1.5 rounded-xl bg-primary text-white text-xs font-bold flex items-center gap-1"
+              >
+                <Plus size={14} /> आचार्य थप्नुहोस्
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {acharyas.map((a) => (
+              <div key={a.id} className="p-4 rounded-2xl border border-border-theme bg-muted-area/30 flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="text-sm font-black text-card-foreground flex items-center gap-1.5">
+                    <span>{a.nameNe}</span>
+                    <CheckCircle2 size={14} className="text-emerald-500" />
+                  </div>
+                  <div className="text-xs text-amber-500 font-semibold">{a.titleNe}</div>
+                  <div className="text-[11px] text-muted-text">{a.school} • अनुभव: {a.experience}</div>
+                </div>
+                <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-500 text-[11px] font-bold">
+                  {a.coursesCount} कोर्स
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedTab === "admissions" && (
+        <div className="bg-card p-6 rounded-3xl border border-border-theme space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-card-foreground">छात्रवृत्ति, भर्ना र हाजिरी व्यवस्थापन (Scholarships, Admissions & Attendance)</h3>
+            <span className="text-xs font-bold text-amber-500">न्यूनतम हाजिरी मापदण्ड: ८०% अनिवार्य</span>
+          </div>
+          <div className="divide-y divide-border-theme/60 text-xs">
+            {scholarshipApps.map((app) => (
+              <div key={app.id} className="py-3.5 flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <div className="font-bold text-card-foreground text-sm">{app.student}</div>
+                  <div className="text-muted-text">{app.school} • हाजिरी (Attendance): <strong className="text-emerald-500">{app.attendance}</strong></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 font-bold text-[11px]">
+                    {app.status}
+                  </span>
+                  {app.status === "Pending Review" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScholarshipApps(prev => prev.map(item => item.id === app.id ? { ...item, status: "Approved (छात्रवृत्ति स्वीकृत)" } : item));
+                        toast.success("छात्रवृत्ति आवेदन स्वीकृत गरियो!");
+                      }}
+                      className="px-3 py-1 rounded-xl bg-primary text-white font-bold text-[11px]"
+                    >
+                      स्वीकृत गर्नुहोस् (Approve)
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

@@ -133,7 +133,7 @@ export default function NationalSituationRoom({ selectedDistrict = "Kathmandu", 
             </div>
           </div>
           <p className="text-xs text-zinc-400 max-w-2xl">
-            Strict Zero-Placeholder Data Governance • Real-time Hydro-meteorological, Seismic, NEPSE & Commodity Telemetry.
+            Strict Zero-Placeholder Data Governance • Real-time Hydro-meteorological, Seismic, NRB Forex & Official Gazette Telemetry.
           </p>
         </div>
 
@@ -168,7 +168,7 @@ export default function NationalSituationRoom({ selectedDistrict = "Kathmandu", 
         {[
           { id: "all", label: "सम्पूर्ण दृश्य (All Command)" },
           { id: "alerts", label: "विपद् तथा मौसम सतर्कता (Disaster & Hydro)" },
-          { id: "markets", label: "बजार तथा वित्तीय सूचकांक (NEPSE & Commodities)" },
+          { id: "markets", label: "विनिमय दर (NRB Forex Reference)" },
           { id: "notices", label: "सरकारी सूचना तथा राजपत्र (Gov Gazettes)" },
         ].map(tab => (
           <button
@@ -188,60 +188,6 @@ export default function NationalSituationRoom({ selectedDistrict = "Kathmandu", 
       {/* 3. SITUATION ROOM MATRIX */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         
-        {/* CARD A: NEPSE MARKET TELEMETRY */}
-        {(activeTab === "all" || activeTab === "markets") && data?.nepse && (
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between hover:border-amber-500/40 transition-all">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-black">
-                    <TrendingUp size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white">नेपाल स्टक एक्सचेन्ज (NEPSE)</h3>
-                    <span className="text-[10px] text-zinc-400 font-mono">Market Index Telemetry</span>
-                  </div>
-                </div>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-black text-xs">
-                  {data.nepse.marketStatus}
-                </span>
-              </div>
-
-              {data.nepse.provenance.verificationStatus === "unavailable" ? (
-                <div className="p-4 rounded-xl bg-red-950/30 border border-red-800/40 text-center space-y-1 my-2">
-                  <AlertTriangle size={20} className="mx-auto text-red-400" />
-                  <p className="text-xs font-bold text-red-200">डाटा उपलब्ध छैन (Data Unavailable)</p>
-                  <p className="text-[10px] text-zinc-400 font-mono">Last verified: {data.nepse.provenance.lastVerifiedNpt}</p>
-                </div>
-              ) : (
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-2xl font-black text-white tracking-tight font-mono">
-                      {data.nepse.currentPoints.toFixed(2)}
-                    </span>
-                    <span className={`text-xs font-bold font-mono ${data.nepse.changePoints >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {data.nepse.changePoints >= 0 ? "+" : ""}{data.nepse.changePoints.toFixed(2)} ({data.nepse.changePercent}%)
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/60">
-                      <span className="text-zinc-400 text-[10px] block">कुल कारोबार (Turnover)</span>
-                      <span className="font-bold text-zinc-200 font-mono">रु {data.nepse.turnoverNprCr} करोड</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/60">
-                      <span className="text-zinc-400 text-[10px] block">अग्रणी क्षेत्र (Top Sector)</span>
-                      <span className="font-bold text-amber-400 truncate block">{data.nepse.topSector}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {renderProvenanceFooter(data.nepse.provenance)}
-          </div>
-        )}
-
         {/* CARD B: HYDRO-METEOROLOGICAL & FLOOD ALERTS */}
         {(activeTab === "all" || activeTab === "alerts") && data?.hydromet && data.hydromet.length > 0 && (
           <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between hover:border-amber-500/40 transition-all">
@@ -328,42 +274,6 @@ export default function NationalSituationRoom({ selectedDistrict = "Kathmandu", 
             </div>
 
             {renderProvenanceFooter(data.seismic[0].provenance)}
-          </div>
-        )}
-
-        {/* CARD D: GOLD & SILVER RATES */}
-        {(activeTab === "all" || activeTab === "markets") && data?.commodities && (
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between hover:border-amber-500/40 transition-all">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center font-black">
-                    <Flame size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white">सुन-चाँदी दैनिक दर (Gold & Silver)</h3>
-                    <span className="text-[10px] text-zinc-400 font-mono">FENEOSIDA Official Fix</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                {data.commodities.filter(c => c.category === "GOLD_SILVER").map(metal => (
-                  <div key={metal.id} className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/60 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-xs text-zinc-100 block">{metal.nameNe}</span>
-                      <span className="text-[10px] text-zinc-400">{metal.unit}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-black text-amber-400 font-mono block">{metal.rateFormatted}</span>
-                      <span className="text-[10px] text-emerald-400 font-bold">{metal.changeFormatted}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {renderProvenanceFooter(data.commodities[0].provenance)}
           </div>
         )}
 

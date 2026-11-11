@@ -1,0 +1,43 @@
+name: CI / Production Build & Test Verification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verify:
+    name: Lint, Test & Build Certification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Type Checking & Lint
+        run: npm run lint
+
+      - name: Execute Production Test Suites (Fencing & Workflow Gate)
+        run: npm test
+
+      - name: Compile Production Build (Vite & Express CJS)
+        run: npm run build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=2048"
+
+      - name: Verify Build Output Artifacts
+        run: |
+          test -f dist/index.html || exit 1
+          test -f dist/server.cjs || exit 1
+          echo "Production artifacts verified successfully."
+

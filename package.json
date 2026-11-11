@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "NODE_OPTIONS=\"--max-old-space-size=2048\" vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --log-override:empty-import-meta=silent --outfile=dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "NODE_OPTIONS=\"--max-old-space-size=2048\" tsc --noEmit --skipLibCheck",
+    "lint": "tsc --noEmit --skipLibCheck",
+    "test": "tsx --test --test-concurrency=1 tests/smoke-e2e-connectivity.ts tests/phase1b-scheduler-pipeline-gate.ts tests/phase4b1-editorial-workflow-gate.ts tests/phase4b1w-final-snapshot-fencing.ts tests/phase4b2-e2e-platform-gate.ts",
     "start": "node dist/server.cjs",
-    "postinstall": "echo 'declare module \"virtual:pwa-register/react\" { export function useRegisterSW(options?: any): any; }' > src/vite-env.d.ts"
+    "postinstall": "echo declare module 'virtual:pwa-register/react' { export function useRegisterSW(options?: any): any; } > src/vite-env.d.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1095.0",

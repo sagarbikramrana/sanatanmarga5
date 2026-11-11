@@ -10,7 +10,7 @@ coverage/
 !.env.example
 
 # Runtime job queues, generated snapshots & temporary caches
-data/
+/data/
 public/snapshots/
 public/uploads/
 data/snapshot_store.json

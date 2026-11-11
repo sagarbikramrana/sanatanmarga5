@@ -503,6 +503,34 @@ export const ROLE_DEFINITIONS: Record<string, RoleDefinition> = {
     descriptionEn: "Can view internal tenant content and resources.",
     permissions: [],
     badgeColor: "bg-slate-500/10 text-slate-500 border-slate-500/20"
+  },
+  acharya: {
+    id: "acharya",
+    nameNe: "आचार्य / प्रशिक्षक (Acharya / Instructor)",
+    nameEn: "Academy Acharya / Instructor",
+    descriptionNe: "अनलाइन गुरुकुल पाठ्यक्रम, कक्षा, परीक्षा, हाजिरी र प्रमाणपत्र मूल्याङ्कन गर्ने।",
+    descriptionEn: "Can manage Gurukul courses, live classes, timestamped Q&A, assessments, grading, and competency records.",
+    permissions: [
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.LIVE_CREATE,
+      PERMISSIONS.LIVE_EDIT,
+      PERMISSIONS.EVENTS_MANAGE_KNOWLEDGE_LINKS
+    ],
+    badgeColor: "bg-amber-500/10 text-amber-500 border-amber-500/20"
+  },
+  radio_producer: {
+    id: "radio_producer",
+    nameNe: "रेडियो निर्माता / प्रस्तोता (Radio Producer)",
+    nameEn: "RadioOS Broadcast Producer",
+    descriptionNe: "सनातन रेडियो प्रसारण घडी, कार्यक्रम तालिका, बुलेटिन, जिङ्गल र रेकर्डिङ व्यवस्थापन गर्ने।",
+    descriptionEn: "Can manage RadioOS broadcast clock, live/backup streams, presenters, jingles, news bulletins, and archives.",
+    permissions: [
+      PERMISSIONS.RADIO_MANAGE,
+      PERMISSIONS.MEDIA_UPLOAD,
+      PERMISSIONS.MEDIA_MANAGE,
+      PERMISSIONS.LIVE_CREATE
+    ],
+    badgeColor: "bg-purple-500/10 text-purple-500 border-purple-500/20"
   }
 };
 

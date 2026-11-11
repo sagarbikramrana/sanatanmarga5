@@ -41,24 +41,16 @@ export interface DistrictIntelligenceNode {
 }
 
 export interface MarketPulseData {
-  goldFinePerTola: string; // e.g., "NPR 152,500"
-  goldTejabiPerTola: string; // e.g., "NPR 151,900"
-  silverPerTola: string; // e.g., "NPR 1,850"
   forexRates: {
     usd: string;
     eur: string;
     gbp: string;
     inr: string;
   };
-  fuelPrices: {
-    petrol: string;
-    diesel: string;
-    lpgCylinder: string;
-  };
-  nepseIndex: {
-    points: string;
-    change: string;
-    percent: string;
+  civicIndicators: {
+    hydroGeneration: string;
+    remittanceInflow: string;
+    provincesCovered: string;
   };
   whyItMattersMarket: string;
 }

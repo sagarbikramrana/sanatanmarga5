@@ -102,30 +102,30 @@ export const TodayEngine = {
       ],
       marketPulse: {
         items: [
-          { id: "gold", nameNepali: "सुन (प्रति तोला)", buy: "152,500", source: "FENAGOA", change: "+700", verifiedState: "Verified" },
-          { id: "silver", nameNepali: "चाँदी (प्रति तोला)", buy: "1,850", source: "FENAGOA", change: "Stable", verifiedState: "Verified" },
-          { id: "usd", nameNepali: "अमेरिकी डलर ($1)", buy: "135.10", source: "NRB", change: "+0.20", verifiedState: "Verified" }
+          { id: "usd", nameNepali: "अमेरिकी डलर ($1)", buy: "135.10", source: "NRB", change: "+0.20", verifiedState: "Verified" },
+          { id: "eur", nameNepali: "युरो (€1)", buy: "145.80", source: "NRB", change: "+0.15", verifiedState: "Verified" },
+          { id: "hydro", nameNepali: "राष्ट्रिय जलविद्युत् उत्पादन", buy: "3,140 MW", source: "NEA", change: "Stable", verifiedState: "Verified" }
         ],
-        aiAnalysis: "सुनको मूल्य स्थिर रहँदा बजारमा लगानीकर्ताहरूको आकर्षण कायम रहेको छ।",
+        aiAnalysis: "नेपाल राष्ट्र बैंकको विदेशी विनिमय सञ्चिति र जलविद्युत् उत्पादन उच्च स्तरमा कायम रहेको छ।",
         localizedAgri: "कृषि उपजको ढुवानी सुचारु।"
       },
       intelligenceGraphNode: {
         connections: [
           "Festival (Krishna Janmashtami) → Panchang Detector",
           "District Intelligence → Kathmandu Valley Security",
-          "Market Pulse → Gold & Forex Stability",
+          "Civic & Economic Pulse → NRB Forex & NEA Hydro Grid",
           "ListenOS → Daily Audio Bulletin (8m)"
         ]
       },
       dailyBulletin: {
         title: 'आजको सनातनमार्ग — ८ मिनेट विशेष श्रव्य बुलेटिन',
-        summary: 'श्रीकृष्ण जन्माष्टमी उत्सवको तयारी, राष्ट्र बैंकको आर्थिक समीक्षा, ७७ जिल्लाको स्थानीय ताजा अपडेट र सुन-चाँदी बजारको पूर्ण विवरण।',
+        summary: 'श्रीकृष्ण जन्माष्टमी उत्सवको तयारी, राष्ट्र बैंकको आर्थिक समीक्षा र ७७ जिल्लाको स्थानीय ताजा अपडेट।',
         summaryNepali: 'श्रीकृष्ण जन्माष्टमी उत्सवको तयारी, राष्ट्र बैंकको आर्थिक समीक्षा र ७७ जिल्लाको स्थानीय ताजा अपडेट।',
         audioDuration: '०८:१५ मिनेट',
         bulletinPoints: [
           'काठमाडौं उपत्यकासहित देशैभर श्रीकृष्ण जन्माष्टमी भव्य रूपमा मनाइँदै।',
           'नेपाल राष्ट्र बैंकले जारी गर्यो मौद्रिक नीतिको त्रैमासिक समीक्षा।',
-          'सुनको मूल्यमा सामान्य वृद्धि, इन्धनको मूल्य स्थिर।',
+          'राष्ट्रिय जलविद्युत् ग्रिडमा ३,१४० मेगावाट उत्पादन, प्रसारण लाइन सुचारु।',
           '७७ वटै जिल्लामा चाडपर्व लक्षित विशेष प्रशासनिक निगरानी सुरु।'
         ]
       },
@@ -369,26 +369,18 @@ export function getTodayObject(): TodayObject {
       };
     }),
     marketPulse: {
-      goldFinePerTola: 'NPR 152,500',
-      goldTejabiPerTola: 'NPR 151,900',
-      silverPerTola: 'NPR 1,850',
       forexRates: {
         usd: 'रू १३४.५० (खरीद) / १३५.१० (विक्री)',
-        eur: 'रू १४८.20',
-        gbp: 'रू १७६.40',
+        eur: 'रू १४५.८०',
+        gbp: 'रू १७६.४०',
         inr: 'रू १.६० (स्थिर)'
       },
-      fuelPrices: {
-        petrol: 'रू १७२.०० प्रति लिटर',
-        diesel: 'रू १६१.०० प्रति लिटर',
-        lpgCylinder: 'रू १,९१० प्रति सिलिन्डर'
+      civicIndicators: {
+        hydroGeneration: '३,१४० MW (राष्ट्रीय ग्रिड)',
+        remittanceInflow: '+१६.५% (NRB प्रतिवेदन)',
+        provincesCovered: '७ प्रदेश / ७७ जिल्ला'
       },
-      nepseIndex: {
-        points: '२,८४५.६०',
-        change: '+१८.४0 अंक',
-        percent: '+०.६५%'
-      },
-      whyItMattersMarket: 'सुनको मूल्यमा आएको स्थिरताले विवाह तथा गहना बजारमा चहलपहल बढाएको छ भने इन्धन मूल्य स्थिर रहँदा ढुवानी लागतमा राहत मिलेको छ।'
+      whyItMattersMarket: 'विदेशी विनिमय सञ्चिति सुदृढ रहँदा आयात भुक्तानी सहज बनेको छ र जलविद्युत् उत्पादनले औद्योगिक आपूर्ति स्थिर बनाएको छ।'
     },
     dharmaCulture: {
       dailyMantra: {
@@ -406,9 +398,9 @@ export function getTodayObject(): TodayObject {
       {
         id: 'wc-1',
         category: 'अर्थतन्त्र (Economy)',
-        yesterdayState: 'सुन प्रति तोला NPR 151,800',
-        todayState: 'सुन प्रति तोला NPR 152,500 (+NPR 700)',
-        deltaImpact: 'विवाह र गहना बजारमा लगानी बढ्दो',
+        yesterdayState: 'अमेरिकी डलर (USD) खरिद दर रू १३४.३०',
+        todayState: 'अमेरिकी डलर (USD) खरिद दर रू १३४.५० (+०.२०)',
+        deltaImpact: 'नेपाल राष्ट्र बैंकको विनिमय दर अद्यावधिक, रेमिट्यान्स प्रवाहमा उत्साह',
         timestamp: 'आज बिहान ६:०० बजे'
       },
       {
@@ -430,12 +422,12 @@ export function getTodayObject(): TodayObject {
     ],
     dailyBulletin: {
       title: 'आजको सनातनमार्ग — ८ मिनेट विशेष श्रव्य बुलेटिन',
-      summary: 'श्रीकृष्ण जन्माष्टमी उत्सवको तयारी, राष्ट्र बैंकको आर्थिक समीक्षा, ७७ जिल्लाको स्थानीय ताजा अपडेट र सुन-चाँदी बजारको पूर्ण विवरण।',
+      summary: 'श्रीकृष्ण जन्माष्टमी उत्सवको तयारी, राष्ट्र बैंकको आर्थिक समीक्षा र ७७ जिल्लाको स्थानीय ताजा अपडेट।',
       audioDuration: '०८:१५ मिनेट',
       bulletinPoints: [
         'काठमाडौं उपत्यकासहित देशैभर श्रीकृष्ण जन्माष्टमी भव्य रूपमा मनाइँदै।',
         'नेपाल राष्ट्र बैंकले जारी गर्यो मौद्रिक नीतिको त्रैमासिक समीक्षा।',
-        'सुनको मूल्यमा सामान्य वृद्धि, इन्धनको मूल्य स्थिर।',
+        'राष्ट्रिय जलविद्युत् ग्रिडमा ३,१४० मेगावाट उत्पादन, प्रसारण लाइन सुचारु।',
         '७७ वटै जिल्लामा चाडपर्व लक्षित विशेष प्रशासनिक निगरानी सुरु।'
       ]
     }

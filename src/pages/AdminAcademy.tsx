@@ -9,7 +9,7 @@ export default function AdminAcademy() {
   const { user, loading } = useAuth();
 
   if (loading) return <AdminSkeleton />;
-  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+  if (!user || !["admin", "super_admin", "acharya", "editor", "editor_in_chief"].includes(user.role)) {
     return <Navigate to="/login" replace />;
   }
 

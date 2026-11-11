@@ -3,6 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import { captureCASConflict } from "./sentry.js";
 
 // Environment variables for Cloudflare R2 / S3 (Supports MEDIA_R2_* and CLOUDFLARE_R2_*)
 const ACCOUNT_ID = process.env.MEDIA_R2_ACCOUNT_ID || process.env.CLOUDFLARE_R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID || "";
@@ -474,6 +475,7 @@ export async function uploadSnapshotObject(
             if (incomingGen !== undefined && existingGen >= incomingGen && existingGen > 0) {
               const errMsg = `STALE_MANIFEST_WRITE: Committed generation gen${existingGen} is newer than or equal to candidate gen${incomingGen}`;
               console.warn(`[SNAPSHOT_OS] ${errMsg} for ${objectKey}`);
+              captureCASConflict({ objectKey, incomingGeneration: incomingGen, existingGeneration: existingGen, reason: errMsg });
               return { success: false, isR2: false, error: errMsg, statusCode: 409 };
             }
 
@@ -481,11 +483,13 @@ export async function uploadSnapshotObject(
               if (existing.manifestVersion > incomingVersion) {
                 const errMsg = `STALE_MANIFEST_WRITE: Existing manifest version v${existing.manifestVersion} is newer than incoming v${incomingVersion}`;
                 console.warn(`[SNAPSHOT_OS] ${errMsg} for ${objectKey}`);
+                captureCASConflict({ objectKey, incomingGeneration: incomingVersion, existingGeneration: existing.manifestVersion, reason: errMsg });
                 return { success: false, isR2: false, error: errMsg, statusCode: 409 };
               }
               if (existing.manifestVersion === incomingVersion && existing.manifestHash && incomingHash && existing.manifestHash !== incomingHash) {
                 const errMsg = `STALE_MANIFEST_WRITE: Manifest version v${incomingVersion} already published with different hash`;
                 console.warn(`[SNAPSHOT_OS] ${errMsg} for ${objectKey}`);
+                captureCASConflict({ objectKey, incomingGeneration: incomingVersion, existingGeneration: existing.manifestVersion, reason: errMsg });
                 return { success: false, isR2: false, error: errMsg, statusCode: 409 };
               }
             }
@@ -550,6 +554,7 @@ export async function uploadSnapshotObject(
 
     if (isPreconditionFailed) {
       console.warn(`[SNAPSHOT_OS] R2 CAS PreconditionFailed for ${objectKey}:`, error?.message);
+      captureCASConflict({ objectKey, expectedEtag: options?.ifMatch || options?.ifNoneMatch, reason: error?.message || "R2 PreconditionFailed (412)" });
       return {
         success: false,
         isR2: true,
@@ -570,40 +575,54 @@ export async function uploadSnapshotObject(
   }
 
   // 2. Local Disk CAS Simulation (when R2 is not configured, e.g. tests or local dev)
-  if (isManifest && (options?.ifMatch || options?.ifNoneMatch)) {
-    const localManifestPath = path.join(process.cwd(), "public", "manifest.json");
-    const exists = fs.existsSync(localManifestPath);
+  if (options?.ifMatch || options?.ifNoneMatch) {
+    const candidatePaths = [
+      path.join(process.cwd(), "public", objectKey),
+      path.join(process.cwd(), "data", "snapshots", objectKey),
+      path.join(process.cwd(), "public", "snapshots", objectKey),
+    ];
+    if (isManifest) {
+      candidatePaths.push(path.join(process.cwd(), "public", "manifest.json"));
+    }
+    const resolvedPath = candidatePaths.find(p => fs.existsSync(p));
+    const exists = Boolean(resolvedPath);
 
     if (options.ifNoneMatch === "*") {
       if (exists) {
+        const errMsg = "PRECONDITION_FAILED: Target object already exists (If-None-Match: * violated)";
+        captureCASConflict({ objectKey, expectedEtag: "If-None-Match: *", reason: errMsg });
         return {
           success: false,
           isR2: false,
-          error: "PRECONDITION_FAILED: Manifest already exists (If-None-Match: * violated)",
+          error: errMsg,
           isPreconditionFailed: true,
           statusCode: 412
         };
       }
     } else if (options.ifMatch) {
-      if (!exists) {
+      if (!exists || !resolvedPath) {
+        const errMsg = "PRECONDITION_FAILED: Target object does not exist for If-Match";
+        captureCASConflict({ objectKey, expectedEtag: options.ifMatch, reason: errMsg });
         return {
           success: false,
           isR2: false,
-          error: "PRECONDITION_FAILED: Target manifest does not exist for If-Match",
+          error: errMsg,
           isPreconditionFailed: true,
           statusCode: 412
         };
       }
-      const existingRaw = fs.readFileSync(localManifestPath, "utf-8");
+      const existingRaw = fs.readFileSync(resolvedPath, "utf-8");
       const existingHash = crypto.createHash("sha256").update(existingRaw).digest("hex");
       const currentEtag = `"${existingHash}"`;
       const cleanExpected = options.ifMatch.replace(/^W\//, '').replace(/"/g, '').trim();
       const cleanCurrent = currentEtag.replace(/^W\//, '').replace(/"/g, '').trim();
       if (cleanExpected !== cleanCurrent) {
+        const errMsg = `PRECONDITION_FAILED: ETag mismatch (expected ${options.ifMatch}, found ${currentEtag})`;
+        captureCASConflict({ objectKey, expectedEtag: options.ifMatch, actualEtag: currentEtag, reason: errMsg });
         return {
           success: false,
           isR2: false,
-          error: `PRECONDITION_FAILED: ETag mismatch (expected ${options.ifMatch}, found ${currentEtag})`,
+          error: errMsg,
           isPreconditionFailed: true,
           statusCode: 412
         };

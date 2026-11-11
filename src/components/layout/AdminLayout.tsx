@@ -83,8 +83,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   if (authLoading) return <AdminSkeleton />;
   const isStaff = user && [
-    'super_admin', 'admin', 'editorial_admin', 'chief_editor', 'senior_editor', 
-    'editor', 'reporter', 'contributor', 'researcher', 'moderator', 'analyst'
+    'super_admin', 'admin', 'editorial_admin', 'chief_editor', 'senior_editor',
+    'editor_in_chief', 'managing_editor', 'news_editor', 'editor', 'reporter',
+    'fact_checker', 'sgis_scholar', 'manuscript_curator', 'media_producer',
+    'radio_producer', 'acharya', 'community_moderator', 'revenue_manager',
+    'finance_auditor', 'commerce_manager', 'contributor', 'researcher', 'moderator', 'analyst'
   ].includes(user.role);
   if (!user || !isStaff) return null;
 

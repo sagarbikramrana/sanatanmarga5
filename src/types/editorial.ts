@@ -83,6 +83,33 @@ export interface CandidateEditorialHistoryEntry {
   version: number;
 }
 
+export type SchedulingStatus =
+  | "idle"
+  | "scheduled"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export interface CandidateSchedule {
+  publishAt: string; // ISO 8601 UTC timestamp
+  timezone?: string; // IANA timezone for display (e.g. "Asia/Kathmandu")
+  scheduledByUid: string;
+  scheduledByName?: string;
+  scheduledByEmail?: string;
+  scheduledByRole?: string;
+  scheduledAt: string;
+  failureReason?: string;
+}
+
+export interface CandidatePublicationResult {
+  success: boolean;
+  articleId?: string;
+  error?: string;
+  errorCode?: string;
+  executedAt: string;
+}
+
 export interface EditorialCandidate {
   id: string;
   status: EditorialCandidateStatus;
@@ -111,6 +138,19 @@ export interface EditorialCandidate {
   tenantId?: string;
   requiresEditorialReview?: boolean;
   pendingSnapshotInvalidation?: boolean;
+  // Scheduled Publishing OS (Phase 1A/1B)
+  schedule?: CandidateSchedule;
+  schedulingStatus?: SchedulingStatus;
+  executionAttempts?: number;
+  lastAttemptAt?: string;
+  lastPublicationResult?: CandidatePublicationResult;
+  leaseToken?: string | null;
+  leaseExpiresAt?: string | null;
+}
+
+export interface ScheduleCandidateInput {
+  publishAt: string;
+  timezone?: string;
 }
 
 export interface UpdateDraftInput {

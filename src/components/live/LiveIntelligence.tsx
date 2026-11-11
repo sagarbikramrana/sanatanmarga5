@@ -11,7 +11,7 @@ export default function LiveIntelligence({ video }: LiveIntelligenceProps) {
 
   // Generate contextual intelligence based on video title, category, or district
   const title = video.title || "";
-  const isEconomic = title.includes("Bank") || title.includes("अर्थ") || title.includes("Budget") || title.includes("बजेट") || title.includes("शेयर") || title.includes("NEPSE");
+  const isEconomic = title.includes("Bank") || title.includes("अर्थ") || title.includes("Budget") || title.includes("बजेट") || title.includes("विकास");
   const isPolitical = title.includes("Parliament") || title.includes("संसद") || title.includes("मन्त्री") || title.includes("Govt") || title.includes("सरकार");
   const districtName = video.district || "काठमाडौं";
 
@@ -76,7 +76,7 @@ export default function LiveIntelligence({ video }: LiveIntelligenceProps) {
         </div>
       </div>
 
-      {/* MARKET PULSE / RELATED COVERAGE INTEGRATION */}
+      {/* CIVIC & ECONOMIC REFERENCE INTEGRATION */}
       {isEconomic && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -84,15 +84,15 @@ export default function LiveIntelligence({ video }: LiveIntelligenceProps) {
               <TrendingUp size={16} />
             </div>
             <div>
-              <h5 className="text-xs font-black text-amber-300">💰 Market Pulse (बजार हलचल)</h5>
-              <p className="text-[11px] text-zinc-300">USD/NPR: 133.45 | Gold: रू. 1,42,500/tola | NEPSE: 2,654.12 (+14.2)</p>
+              <h5 className="text-xs font-black text-amber-300">🏛️ NRB Economic Reference (आर्थिक सन्दर्भ)</h5>
+              <p className="text-[11px] text-zinc-300">USD/NPR: 133.45 | EUR/NPR: 144.20 | 7 Provinces • 77 Districts</p>
             </div>
           </div>
           <button 
-            onClick={() => navigate('/market')} 
+            onClick={() => navigate('/nepal-hub')} 
             className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
           >
-            <span>विस्तृत बजार हेर्नुहोस्</span>
+            <span>नेपाल हब हेर्नुहोस्</span>
             <ArrowUpRight size={13} />
           </button>
         </div>

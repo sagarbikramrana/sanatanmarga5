@@ -228,28 +228,28 @@ export default function EditorialBentoGrid({
                 </div>
               </div>
 
-              {/* Real-time Market Pulse */}
+              {/* Civic & NRB Forex Reference */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between text-[10px] font-black uppercase text-muted-text tracking-wider">
                   <span className="flex items-center gap-1">
                     <TrendingUp size={11} className="text-emerald-500" />
-                    <span>{language === "en" ? "Market Pulse" : "बजार सूचकाङ्क"}</span>
+                    <span>{language === "en" ? "Civic & Forex Reference" : "विनिमय तथा नागरिक सूचक"}</span>
                   </span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">NEPSE {marketPulse.nepseChange}</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">NRB VERIFIED</span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="p-2 rounded-xl bg-muted-area/40 border border-border-theme/50">
-                    <span className="text-[9px] text-muted-text block">सुन (Gold)</span>
-                    <span className="text-[11px] font-black text-card-foreground">{marketPulse.gold}</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-muted-area/40 border border-border-theme/50">
-                    <span className="text-[9px] text-muted-text block">चाँदी (Silver)</span>
-                    <span className="text-[11px] font-black text-card-foreground">{marketPulse.silver}</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-muted-area/40 border border-border-theme/50">
                     <span className="text-[9px] text-muted-text block">USD/NPR</span>
                     <span className="text-[11px] font-black text-card-foreground">{marketPulse.usdNpr}</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-muted-area/40 border border-border-theme/50">
+                    <span className="text-[9px] text-muted-text block">प्रदेश (Provinces)</span>
+                    <span className="text-[11px] font-black text-card-foreground">७ प्रदेश</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-muted-area/40 border border-border-theme/50">
+                    <span className="text-[9px] text-muted-text block">जिल्ला (Districts)</span>
+                    <span className="text-[11px] font-black text-card-foreground">७७ जिल्ला</span>
                   </div>
                 </div>
               </div>
