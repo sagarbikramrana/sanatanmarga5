@@ -13,6 +13,12 @@ export async function adminFetch(input: RequestInfo | URL, init: RequestInit = {
       if (idToken && !headers.has("Authorization")) {
         headers.set("Authorization", `Bearer ${idToken}`);
       }
+      if (!headers.has("X-User-Uid")) {
+        headers.set("X-User-Uid", currentUser.uid || "");
+      }
+      if (currentUser.email && !headers.has("X-User-Email")) {
+        headers.set("X-User-Email", currentUser.email);
+      }
     }
   } catch (err) {
     // Proceed gracefully if token retrieval fails transiently

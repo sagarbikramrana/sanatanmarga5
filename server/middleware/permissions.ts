@@ -222,10 +222,10 @@ export async function authenticateRequestUser(
   }
 
   // Header-based fallback for authenticated admin requests
-  if (!decodedToken && req.headers["x-user-email"]) {
+  if (!decodedToken && (req.headers["x-user-email"] || req.headers["x-user-uid"])) {
     decodedToken = {
       uid: String(req.headers["x-user-uid"] || "staff_actor"),
-      email: String(req.headers["x-user-email"]),
+      email: String(req.headers["x-user-email"] || ""),
       name: String(req.headers["x-user-name"] || "Staff User"),
       role: String(req.headers["x-user-role"] || "admin"),
       tenantId: String(req.headers["x-tenant-id"] || "sanatan-media")

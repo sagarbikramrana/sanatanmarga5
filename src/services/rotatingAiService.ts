@@ -4,6 +4,35 @@ export function resetRotatingAiCache() {
   // No-op client side
 }
 
+const prepareAuthHeaders = async (forceRefresh = false): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (!auth.currentUser && typeof window !== "undefined") {
+    await new Promise<void>((resolve) => {
+      const unsub = auth.onAuthStateChanged(() => {
+        unsub();
+        resolve();
+      });
+      setTimeout(() => { unsub(); resolve(); }, 1200);
+    });
+  }
+
+  if (auth.currentUser) {
+    try {
+      const idToken = await auth.currentUser.getIdToken(forceRefresh);
+      if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
+      headers["X-User-Uid"] = auth.currentUser.uid;
+      if (auth.currentUser.email) headers["X-User-Email"] = auth.currentUser.email;
+      if (auth.currentUser.displayName) headers["X-User-Name"] = auth.currentUser.displayName;
+    } catch (e) {
+      console.warn("Could not get auth ID token for AI proxy:", e);
+    }
+  }
+  return headers;
+};
+
 export const generateWithRotation = async (options: {
   model: string;
   contents: any;
@@ -12,22 +41,7 @@ export const generateWithRotation = async (options: {
   moduleName?: string;
   requestId?: string;
 }) => {
-  let idToken: string | undefined;
-  try {
-    if (auth.currentUser) {
-      idToken = await auth.currentUser.getIdToken();
-    }
-  } catch (e) {
-    console.warn("Could not get auth ID token for AI proxy:", e);
-  }
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  if (idToken) {
-    headers["Authorization"] = `Bearer ${idToken}`;
-  }
+  const headers = await prepareAuthHeaders(false);
 
   const reqPayload = {
     ...options,
@@ -38,23 +52,35 @@ export const generateWithRotation = async (options: {
   console.log(`[AI_NEWSROOM] Dispatching AI rotation request (module=${reqPayload.moduleName}, model=${options.model}, category=${options.category || 'general'}, reqId=${reqPayload.requestId})`);
 
   const baseUrl = typeof window !== "undefined" ? "" : (process.env.API_BASE_URL || "http://localhost:3000");
-  const res = await fetch(`${baseUrl}/api/gemini/generate-with-rotation`, {
+  let res = await fetch(`${baseUrl}/api/gemini/generate-with-rotation`, {
     method: "POST",
     headers,
     body: JSON.stringify(reqPayload),
   });
 
-  const rawText = await res.text();
-  const trimmedText = rawText.trim();
+  // If 401 Unauthorized and user is logged in, force refresh token and retry once
+  if (res.status === 401 && auth.currentUser) {
+    console.log("[rotatingAiService] Received 401, force refreshing auth token and retrying request...");
+    const refreshedHeaders = await prepareAuthHeaders(true);
+    res = await fetch(`${baseUrl}/api/gemini/generate-with-rotation`, {
+      method: "POST",
+      headers: refreshedHeaders,
+      body: JSON.stringify(reqPayload),
+    });
+  }
+
+  let rawText = await res.text();
+  let trimmedText = rawText.trim();
   const isHtml = trimmedText.toLowerCase().startsWith("<!doctype") || 
                  trimmedText.toLowerCase().startsWith("<html") || 
                  res.headers.get("content-type")?.includes("text/html");
 
   if (isHtml) {
     console.error("[rotatingAiService] API endpoint returned HTML instead of JSON:", trimmedText.slice(0, 200));
-    const error = new Error("DISCOVERY_API_INVALID_RESPONSE");
+    const error = new Error("AI सेवा अस्थायी रूपमा व्यस्त छ (Gateway Timeout)। कृपया केही बेरमा पुनः प्रयास गर्नुहोस्।");
     (error as any).status = res.status;
     (error as any).isInvalidHtmlResponse = true;
+    (error as any).isGatewayTimeout = true;
     (error as any).code = "DISCOVERY_API_INVALID_RESPONSE";
     throw error;
   }

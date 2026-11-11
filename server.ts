@@ -1909,7 +1909,12 @@ Instructions:
         delete sdkConfig.responseMimeType;
       }
 
+      const requestDeadline = Date.now() + 22000; // 22s budget to prevent Render 502 Bad Gateway
       for (let i = 0; i < keys.length; i++) {
+        if (Date.now() > requestDeadline) {
+          console.warn("[Server Rotation] Request deadline reached (22s). Halting loop to prevent 502 proxy timeout.");
+          break;
+        }
         const apiKey = keys[i];
         const ai = new GoogleGenAI({
           apiKey,
@@ -1921,6 +1926,10 @@ Instructions:
         });
 
         for (const targetModel of candidateModels) {
+          if (Date.now() > requestDeadline) {
+            console.warn("[Server Rotation] Request deadline reached during model loop.");
+            break;
+          }
           const attemptStart = Date.now();
           console.log(JSON.stringify({
             module: reqModule,
@@ -1978,6 +1987,11 @@ Instructions:
 
             console.error(`[Server Rotation] Key ${i+1}/${keys.length}, Model ${targetModel} error:`, errorMsg);
             lastError = error;
+
+            if (isQuota) {
+              console.warn(`[Server Rotation] Key ${i+1}/${keys.length} hit quota limit. Skipping remaining candidate models on this key.`);
+              break;
+            }
 
             // If tools were enabled (e.g. googleSearch) and any failure occurred (quota, unsupported tool, or 400),
             // immediately attempt fallback on the current model WITHOUT tools
@@ -5360,6 +5374,27 @@ ${verifiedSummaryText}
     }
   });
 
+  // 9b. Dedicated Cache Ads Endpoint
+  app.get(["/api/cache/ads", "/api/cache/ads.json"], async (req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+    try {
+      let ads: any[] = [];
+      if (adminDb) {
+        const snap = await adminDb.collection("ads").get();
+        ads = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      }
+      if (ads.length === 0) {
+        ads = sos.getDynamicCollection("ads") || [];
+      }
+      const payload = { success: true, ads, generatedAt: new Date().toISOString() };
+      sos.snapshotStore["ads"] = { data: payload, generatedAt: new Date().toISOString() };
+      return res.json(payload);
+    } catch (err: any) {
+      const fallbackAds = sos.getDynamicCollection("ads") || [];
+      return res.json({ success: true, ads: fallbackAds, generatedAt: new Date().toISOString() });
+    }
+  });
+
   // 10. Snapshot Getters (Single-depth routes, e.g., /api/cache/homepage.json)
   app.get("/api/cache/:snapshotType", async (req, res) => {
     const { snapshotType } = req.params;
@@ -5367,6 +5402,25 @@ ${verifiedSummaryText}
     const isFreshRequested = req.query.fresh === "true" || req.query.force === "true" || Boolean(req.query._t);
 
     res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=30");
+
+    if (cleanType === "ads") {
+      try {
+        let ads: any[] = [];
+        if (adminDb) {
+          const snap = await adminDb.collection("ads").get();
+          ads = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        }
+        if (ads.length === 0) {
+          ads = sos.getDynamicCollection("ads") || [];
+        }
+        const payload = { success: true, ads, generatedAt: new Date().toISOString() };
+        sos.snapshotStore["ads"] = { data: payload, generatedAt: new Date().toISOString() };
+        return res.json(payload);
+      } catch (err: any) {
+        const fallbackAds = sos.getDynamicCollection("ads") || [];
+        return res.json({ success: true, ads: fallbackAds, generatedAt: new Date().toISOString() });
+      }
+    }
 
     const existingEntry = sos.snapshotStore[cleanType];
     const entryAgeMs = existingEntry?.generatedAt ? (Date.now() - new Date(existingEntry.generatedAt).getTime()) : Infinity;

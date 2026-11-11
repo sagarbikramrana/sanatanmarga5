@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/src/lib/auth";
+import { adminFetch } from "@/src/lib/adminFetch";
 
 export interface ReviewItem {
   reviewId: string;
@@ -52,7 +53,7 @@ export default function AdminReviewInboxPage() {
   const fetchReviews = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/reviews");
+      const res = await adminFetch("/api/admin/reviews");
       if (res.ok) {
         const data = await res.json();
         setReviews(data.reviews || []);
@@ -106,7 +107,7 @@ export default function AdminReviewInboxPage() {
 
   const handleUpdateStatus = async (reviewId: string, newStatus: ReviewItem["status"]) => {
     try {
-      const res = await fetch(`/api/admin/reviews/${reviewId}/status`, {
+      const res = await adminFetch(`/api/admin/reviews/${reviewId}/status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus })
