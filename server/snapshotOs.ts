@@ -321,6 +321,8 @@ export class SnapshotOS {
 
   public dynamicNepalHubLiveUpdates: any[] = [];
   public dynamicNepalHubLiveFilePath = path.join(process.cwd(), "data", "dynamic_nepal_hub_live.json");
+  public dynamicCollections: Record<string, Record<string, any>> = {};
+  public dynamicCollectionsFilePath = path.join(process.cwd(), "data", "dynamic_collections.json");
   public snapshotStoreFilePath = path.join(process.cwd(), "data", "snapshot_store.json");
 
   private adminDb: any;
@@ -352,6 +354,7 @@ export class SnapshotOS {
     this.loadDeletedDocIds();
     this.loadDynamicCommunityPosts();
     this.loadDynamicNepalHubLive();
+    this.loadDynamicCollections();
     this.prepopulateArchives();
     this.syncCurrentManifestFromDisk();
     
@@ -1574,6 +1577,94 @@ export class SnapshotOS {
     this.atomicWriteJsonSync(this.dynamicArticlesFilePath, this.dynamicArticles.slice(0, 300));
   }
 
+  private loadDynamicCollections() {
+    try {
+      if (fs.existsSync(this.dynamicCollectionsFilePath)) {
+        const raw = fs.readFileSync(this.dynamicCollectionsFilePath, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          this.dynamicCollections = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load dynamic collections from file:", e);
+    }
+
+    // Hydrate from R2 in background if configured
+    downloadSnapshotObject("snapshots/dynamic_collections.json")
+      .then((remoteObj) => {
+        if (remoteObj && typeof remoteObj === "object" && !Array.isArray(remoteObj)) {
+          for (const [col, docs] of Object.entries(remoteObj)) {
+            if (!this.dynamicCollections[col]) this.dynamicCollections[col] = {};
+            if (docs && typeof docs === "object") {
+              this.dynamicCollections[col] = { ...(docs as Record<string, any>), ...this.dynamicCollections[col] };
+            }
+          }
+          this.atomicWriteJsonSync(this.dynamicCollectionsFilePath, this.dynamicCollections);
+        }
+      })
+      .catch(() => {});
+  }
+
+  private persistDynamicCollectionsToR2() {
+    this.atomicWriteJsonSync(this.dynamicCollectionsFilePath, this.dynamicCollections);
+    uploadSnapshotObject("snapshots/dynamic_collections.json", this.dynamicCollections).catch(() => {});
+  }
+
+  public upsertDynamicDocument(colName: string, docId: string | undefined, data: any, merge = true): string {
+    if (!colName || !data || typeof data !== "object") return docId || "";
+    const resolvedId = docId || data.id || `dyn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    this.deletedDocIds.delete(resolvedId);
+
+    if (!this.dynamicCollections[colName]) {
+      this.dynamicCollections[colName] = {};
+    }
+
+    const existing = this.dynamicCollections[colName][resolvedId] || {};
+    const record = merge
+      ? { ...existing, ...data, id: resolvedId, updatedAt: data.updatedAt || new Date().toISOString() }
+      : { ...data, id: resolvedId, updatedAt: data.updatedAt || new Date().toISOString() };
+
+    this.dynamicCollections[colName][resolvedId] = record;
+
+    // Also update specialized stores and immediate snapshotStore modules
+    if (colName === "articles") {
+      this.addDynamicArticle(record);
+    } else if (colName === "communityPosts" || colName === "community_posts") {
+      this.addDynamicCommunityPost(record);
+    } else if (colName === "nepal_hub_live_updates" || colName === "nepalHubLive") {
+      this.addDynamicNepalHubLive(record);
+    } else if (colName === "settings" && resolvedId === "site") {
+      const mergedSite = { ...(this.snapshotStore["site_config"]?.data || {}), ...record, generatedAt: new Date().toISOString() };
+      this.snapshotStore["site_config"] = { data: mergedSite, generatedAt: mergedSite.generatedAt };
+      this.snapshotStore["settings/site"] = { data: mergedSite, generatedAt: mergedSite.generatedAt };
+      uploadSnapshotObject("site_config.json", mergedSite).catch(() => {});
+    }
+
+    this.persistDynamicCollectionsToR2();
+    return resolvedId;
+  }
+
+  public removeDynamicDocument(colName: string, docId: string) {
+    if (!docId) return;
+    this.addDeletedDocId(docId);
+    if (colName && this.dynamicCollections[colName]) {
+      delete this.dynamicCollections[colName][docId];
+    }
+    this.persistDynamicCollectionsToR2();
+  }
+
+  public getDynamicCollection(colName: string): any[] {
+    const map = this.dynamicCollections[colName];
+    if (!map || typeof map !== "object") return [];
+    return Object.values(map).filter((d: any) => d && !this.deletedDocIds.has(d.id));
+  }
+
+  public getDynamicDocument(colName: string, docId: string): any | null {
+    if (!colName || !docId || this.deletedDocIds.has(docId)) return null;
+    return this.dynamicCollections[colName]?.[docId] || null;
+  }
+
   private prepopulateArchives() {
     const types: Array<"hourly" | "daily" | "weekly" | "monthly"> = ["hourly", "hourly", "hourly", "daily", "daily", "weekly", "monthly"];
     const hoursAgo = [1, 2, 3, 24, 48, 168, 720];
@@ -2475,13 +2566,53 @@ export class SnapshotOS {
     };
 
     // First process dynamic articles, then DB articles with proper timestamp comparison
+    this.getDynamicCollection("articles").forEach((a: any) => addUniqueArticle(a, "dynamic"));
     this.dynamicArticles.forEach((a: any) => addUniqueArticle(a, "dynamic"));
     articles.forEach((a: any) => addUniqueArticle(a, "db"));
     // Rule 1: No Source = No Story. Return empty articles list if no verified articles exist.
     articles = filterDeleted(Array.from(articleMap.values()));
 
+    // Merge helper for dynamic collections overriding DB/fallback records
+    const mergeDynamicWithList = (colNames: string[], baseList: any[]): any[] => {
+      const mergedMap = new Map<string, any>();
+      (baseList || []).forEach((item: any) => {
+        if (item && item.id && !this.deletedDocIds.has(item.id)) {
+          mergedMap.set(item.id, item);
+        }
+      });
+      for (const col of colNames) {
+        this.getDynamicCollection(col).forEach((dynItem: any) => {
+          if (dynItem && dynItem.id && !this.deletedDocIds.has(dynItem.id)) {
+            const existing = mergedMap.get(dynItem.id) || {};
+            mergedMap.set(dynItem.id, { ...existing, ...dynItem });
+          }
+        });
+      }
+      return filterDeleted(Array.from(mergedMap.values()));
+    };
+
+    // Merge dynamic settings (site, homepage, homepage_layout)
+    const dynSite = this.getDynamicDocument("settings", "site");
+    if (dynSite) {
+      siteSettings = { ...(siteSettings || {}), ...dynSite };
+    }
+    const dynHomepage = this.getDynamicDocument("settings", "homepage");
+    if (dynHomepage) {
+      homepageSettings = { ...(homepageSettings || {}), ...dynHomepage };
+    }
+    const dynLayout = this.getDynamicDocument("settings", "homepage_layout");
+    if (dynLayout && dynLayout.sections) {
+      layout = dynLayout.sections;
+    }
+
     // Community Posts
     const cpMap = new Map<string, any>();
+    this.getDynamicCollection("communityPosts").forEach((p: any) => {
+      if (p.id && !this.deletedDocIds.has(p.id)) cpMap.set(p.id, p);
+    });
+    this.getDynamicCollection("community_posts").forEach((p: any) => {
+      if (p.id && !this.deletedDocIds.has(p.id)) cpMap.set(p.id, p);
+    });
     this.dynamicCommunityPosts.forEach((p: any) => {
       if (p.id && !this.deletedDocIds.has(p.id)) cpMap.set(p.id, p);
     });
@@ -2492,6 +2623,9 @@ export class SnapshotOS {
 
     // Nepal Hub Live Updates
     const nhMap = new Map<string, any>();
+    this.getDynamicCollection("nepal_hub_live_updates").forEach((u: any) => {
+      if (u.id && !this.deletedDocIds.has(u.id)) nhMap.set(u.id, u);
+    });
     this.dynamicNepalHubLiveUpdates.forEach((u: any) => {
       if (u.id && !this.deletedDocIds.has(u.id)) nhMap.set(u.id, u);
     });
@@ -2500,23 +2634,26 @@ export class SnapshotOS {
     });
     nepalHubLiveUpdates = filterDeleted(Array.from(nhMap.values()));
 
-    // Filter other collections
-    categories = filterDeleted(categories);
+    // Filter and merge other collections with dynamicCollections
+    categories = mergeDynamicWithList(["categories"], categories);
     if (categories.length === 0) {
-      categories = filterDeleted(BACKUP_CATEGORIES);
+      categories = mergeDynamicWithList(["categories"], BACKUP_CATEGORIES);
       categoriesSourceAuthority = "RECOVERY";
       console.warn("[Snapshot OS Authority] Categories fallback to BACKUP_CATEGORIES activated -> marked RECOVERY authority.");
     }
-    events = filterDeleted(events);
-    adsList = filterDeleted(adsList);
-    mediaAssetsList = filterDeleted(mediaAssetsList);
-    knowledgeBase = filterDeleted(knowledgeBase);
-    nepalHubFestivals = filterDeleted(nepalHubFestivals);
-    nepalHubMarkets = filterDeleted(nepalHubMarkets);
-    nepalHubDistricts = filterDeleted(nepalHubDistricts);
-    nepalHubBriefings = filterDeleted(nepalHubBriefings);
-    nepalHubSponsors = filterDeleted(nepalHubSponsors);
-    commentsList = filterDeleted(commentsList);
+    categories.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+
+    events = mergeDynamicWithList(["events"], events);
+    adsList = mergeDynamicWithList(["ads"], adsList);
+    announcements = mergeDynamicWithList(["announcements"], announcements);
+    mediaAssetsList = mergeDynamicWithList(["mediaAssets", "media_assets"], mediaAssetsList);
+    knowledgeBase = mergeDynamicWithList(["knowledge_base", "knowledgeNodes"], knowledgeBase);
+    nepalHubFestivals = mergeDynamicWithList(["nepal_hub_festivals"], nepalHubFestivals);
+    nepalHubMarkets = mergeDynamicWithList(["nepal_hub_markets"], nepalHubMarkets);
+    nepalHubDistricts = mergeDynamicWithList(["nepal_hub_districts"], nepalHubDistricts);
+    nepalHubBriefings = mergeDynamicWithList(["nepal_hub_briefings"], nepalHubBriefings);
+    nepalHubSponsors = mergeDynamicWithList(["nepal_hub_sponsors"], nepalHubSponsors);
+    commentsList = mergeDynamicWithList(["comments"], commentsList);
 
     let rawPublishedArticles = articles.filter(isPubliclyPublishedArticle);
 

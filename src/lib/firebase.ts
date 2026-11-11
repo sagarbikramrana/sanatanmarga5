@@ -1004,6 +1004,118 @@ export function safeOnSnapshot<T = DocumentData>(
 
 export { safeOnSnapshot as onSnapshot };
 
+function extractCollectionFromQuery(q: any, fallback = "unnamed_query"): string {
+  try {
+    const segs = q?._query?.path?.segments || q?.path?.segments;
+    if (Array.isArray(segs) && segs.length > 0) {
+      return segs[0];
+    }
+    if (typeof q?.path === "string" && q.path.trim()) {
+      return q.path.split("/")[0];
+    }
+    if (typeof q?.id === "string" && q.id.trim()) {
+      return q.id;
+    }
+  } catch {}
+  return fallback;
+}
+
+function saveLocalCollectionDoc(col: string, docId: string, data: any, merge = true) {
+  if (typeof window === "undefined" || !col || !docId) return;
+  try {
+    const itemKey = `sg_local_${col}_${docId}`;
+    let existing: any = {};
+    if (merge) {
+      const prevStr = localStorage.getItem(itemKey);
+      if (prevStr) existing = JSON.parse(prevStr);
+    }
+    const record = { ...existing, ...data, id: docId, _localSavedAt: Date.now() };
+    localStorage.setItem(itemKey, JSON.stringify(record));
+
+    const colKey = `sg_local_col_${col}`;
+    const colRaw = localStorage.getItem(colKey);
+    const colMap: Record<string, any> = colRaw ? JSON.parse(colRaw) : {};
+    colMap[docId] = record;
+    localStorage.setItem(colKey, JSON.stringify(colMap));
+  } catch {}
+}
+
+function removeLocalCollectionDoc(col: string, docId: string) {
+  if (typeof window === "undefined" || !col || !docId) return;
+  try {
+    localStorage.removeItem(`sg_local_${col}_${docId}`);
+    const colKey = `sg_local_col_${col}`;
+    const colRaw = localStorage.getItem(colKey);
+    if (colRaw) {
+      const colMap: Record<string, any> = JSON.parse(colRaw);
+      delete colMap[docId];
+      localStorage.setItem(colKey, JSON.stringify(colMap));
+    }
+  } catch {}
+}
+
+function getLocalCollectionDocs(col: string): any[] {
+  if (typeof window === "undefined" || !col) return [];
+  try {
+    const colKey = `sg_local_col_${col}`;
+    const colRaw = localStorage.getItem(colKey);
+    if (colRaw) {
+      const colMap = JSON.parse(colRaw);
+      if (colMap && typeof colMap === "object") {
+        return Object.values(colMap);
+      }
+    }
+  } catch {}
+  return [];
+}
+
+async function syncGatewayMutationToServer(
+  type: "CREATE" | "UPDATE" | "DELETE",
+  colName: string,
+  docId: string,
+  data?: any
+): Promise<void> {
+  if (typeof window === "undefined" || !colName || colName === "pwa_telemetry") return;
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (auth.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        if (idToken) {
+          headers["Authorization"] = `Bearer ${idToken}`;
+        }
+      } catch {}
+    }
+
+    const res = await fetch("/api/admin/sync-pending-posts", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        actions: [
+          {
+            type,
+            collection: colName,
+            docId,
+            data: data || {},
+          },
+        ],
+      }),
+    });
+
+    if (res.ok) {
+      window.dispatchEvent(
+        new CustomEvent("snapshot-rebuilt", {
+          detail: { collection: colName, docId, type, timestamp: Date.now() },
+        })
+      );
+    }
+  } catch (err) {
+    console.warn(`[Gateway Server Sync] Background sync warning for ${colName}/${docId}:`, err);
+  }
+}
+
 /**
  * Central Gateway getDocs with multi-tier cache, backup fallback, single-flight locking, and telemetry.
  */
@@ -1012,7 +1124,8 @@ export async function getDocs<T = DocumentData>(
   optionsOrQueryName: GatewayReadOptions | string = "unnamed_query"
 ): Promise<QuerySnapshot<T>> {
   const opts: GatewayReadOptions = typeof optionsOrQueryName === 'string' ? { operationName: optionsOrQueryName } : optionsOrQueryName;
-  const queryName = opts.operationName || "unnamed_query";
+  const inferredCol = extractCollectionFromQuery(q, "unnamed_query");
+  const queryName = (opts.operationName && opts.operationName !== "unnamed_query") ? opts.operationName : inferredCol;
   const subsystem = opts.subsystem || "general";
   const allowNetwork = opts.skipCircuitBreaker ? true : firestoreCircuitBreaker.allowRead(false);
   let snapshot: QuerySnapshot<T> | null = null;
@@ -1054,7 +1167,22 @@ export async function getDocs<T = DocumentData>(
     } catch (e) {}
   }
 
+  let serverDynamicItems: any[] = [];
+  if ((!snapshot || snapshot.empty) && typeof window !== "undefined" && inferredCol && inferredCol !== "unnamed_query") {
+    try {
+      const r2Res = await fetch(`/api/cache/collection/${encodeURIComponent(inferredCol)}`);
+      if (r2Res.ok) {
+        const r2Data = await r2Res.json();
+        if (Array.isArray(r2Data?.items) && r2Data.items.length > 0) {
+          serverDynamicItems = r2Data.items;
+          actualSource = 'SNAPSHOT_R2';
+        }
+      }
+    } catch {}
+  }
+
   const localFallbackData = getFallbackDataForQuery(queryName);
+  const localColDocs = getLocalCollectionDocs(inferredCol);
   const firestoreItems = snapshot && !snapshot.empty ? snapshot.docs.map(d => ({ id: d.id, ...d.data() })) : [];
 
   if (firestoreItems.length > 0 && actualSource === 'UNAVAILABLE') {
@@ -1068,9 +1196,15 @@ export async function getDocs<T = DocumentData>(
   });
   firestoreItems.forEach(item => {
     const key = (item as any).id || (item as any).slug || (item as any).title || JSON.stringify(item);
-    if (!map.has(key)) {
-      map.set(key, item);
-    }
+    map.set(key, { ...(map.get(key) || {}), ...item });
+  });
+  serverDynamicItems.forEach(item => {
+    const key = item.id || item.slug || item.title || JSON.stringify(item);
+    map.set(key, { ...(map.get(key) || {}), ...item });
+  });
+  localColDocs.forEach(item => {
+    const key = item.id || item.slug || item.title || JSON.stringify(item);
+    map.set(key, { ...(map.get(key) || {}), ...item });
   });
 
   const combined = Array.from(map.values());
@@ -1117,7 +1251,7 @@ export async function getDoc<T = DocumentData>(
       }
     } catch (cacheErr) {}
 
-    return getFallbackDocSnapshot(docRef, queryName, subsystem, startTime);
+    return await getFallbackDocSnapshot(docRef, queryName, subsystem, startTime);
   }
 
   try {
@@ -1150,27 +1284,44 @@ export async function getDoc<T = DocumentData>(
       }
     }
 
-    return getFallbackDocSnapshot(docRef, queryName, subsystem, startTime);
+    return await getFallbackDocSnapshot(docRef, queryName, subsystem, startTime);
   }
 }
 
-function getFallbackDocSnapshot<T>(docRef: DocumentReference<T>, queryName: string, subsystem: string, startTime: number): DocumentSnapshot<T> {
+async function getFallbackDocSnapshot<T>(docRef: DocumentReference<T>, queryName: string, subsystem: string, startTime: number): Promise<DocumentSnapshot<T>> {
   const qLower = queryName.toLowerCase();
+  const col = docRef.parent?.id || (docRef.path ? docRef.path.split('/')[0] : 'misc');
   let fallbackItem: any = null;
 
-  if (qLower.includes('setting') || qLower.includes('site')) {
-    fallbackItem = BACKUP_SITE_SETTINGS;
-  } else if (qLower.includes('tenant')) {
-    fallbackItem = BACKUP_TENANTS[0];
-  } else {
+  // 1. Check localSaved doc first
+  try {
+    const key = `sg_local_${col}_${docRef.id}`;
+    const localItemStr = localStorage.getItem(key);
+    if (localItemStr) {
+      fallbackItem = JSON.parse(localItemStr);
+    }
+  } catch (e) {}
+
+  // 2. Check Server / R2 Dynamic Snapshot Cache
+  if (!fallbackItem && typeof window !== "undefined" && col && docRef.id) {
     try {
-      const col = docRef.parent?.id || (docRef.path ? docRef.path.split('/')[0] : 'misc');
-      const key = `sg_local_${col}_${docRef.id}`;
-      const localItemStr = localStorage.getItem(key);
-      if (localItemStr) {
-        fallbackItem = JSON.parse(localItemStr);
+      const res = await fetch(`/api/cache/doc/${encodeURIComponent(col)}/${encodeURIComponent(docRef.id)}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.exists && json?.data) {
+          fallbackItem = json.data;
+        }
       }
-    } catch (e) {}
+    } catch {}
+  }
+
+  // 3. Static backup fallback
+  if (!fallbackItem) {
+    if (qLower.includes('setting') || qLower.includes('site')) {
+      fallbackItem = BACKUP_SITE_SETTINGS;
+    } else if (qLower.includes('tenant')) {
+      fallbackItem = BACKUP_TENANTS[0];
+    }
   }
 
   const exists = !!fallbackItem;
@@ -1209,7 +1360,7 @@ export async function getDocWithCacheFallback<T = DocumentData>(
 }
 
 /**
- * Central Gateway setDoc with write policy, quota handling, and telemetry.
+ * Central Gateway setDoc with write policy, quota handling, server+R2 sync, and telemetry.
  */
 export async function setDoc<T = DocumentData>(
   reference: DocumentReference<T>, 
@@ -1223,8 +1374,13 @@ export async function setDoc<T = DocumentData>(
   const priority = wOpts.priority || 'NORMAL';
   const opName = wOpts.operationName || `setDoc_${reference.path}`;
   const subsystem = wOpts.subsystem || 'general';
+  const col = reference.parent?.id || (reference.path ? reference.path.split('/')[0] : 'misc');
 
   const startTime = performance.now();
+
+  // Always mirror locally and sync to Server/R2 SnapshotOS so frontend updates immediately
+  saveLocalCollectionDoc(col, reference.id, data, Boolean(setOpts?.merge));
+  syncGatewayMutationToServer("UPDATE", col, reference.id, data).catch(() => {});
 
   try {
     if (setOpts) {
@@ -1243,13 +1399,6 @@ export async function setDoc<T = DocumentData>(
       throw err;
     }
 
-    // NORMAL / LOW writes: cache locally for continuity
-    try {
-      const col = reference.parent?.id || 'misc';
-      const key = `sg_local_${col}_${reference.id}`;
-      localStorage.setItem(key, JSON.stringify({ id: reference.id, ...data, _localSavedAt: Date.now() }));
-    } catch (e) {}
-
     if (isQuotaOrContinuityError(err)) {
       firestoreCircuitBreaker.recordFailure(err);
       handleFirestoreError(err, OperationType.WRITE, reference.path);
@@ -1261,13 +1410,19 @@ export async function setDoc<T = DocumentData>(
 }
 
 /**
- * Central Gateway updateDoc with write policy and telemetry.
+ * Central Gateway updateDoc with write policy, server+R2 sync, and telemetry.
  */
 export async function updateDoc<T = DocumentData>(
   reference: DocumentReference<T>, 
   ...args: any[]
 ): Promise<void> {
   const startTime = performance.now();
+  const col = reference.parent?.id || (reference.path ? reference.path.split('/')[0] : 'misc');
+  const updatePayload = args[0] && typeof args[0] === 'object' ? args[0] : {};
+
+  saveLocalCollectionDoc(col, reference.id, updatePayload, true);
+  syncGatewayMutationToServer("UPDATE", col, reference.id, updatePayload).catch(() => {});
+
   try {
     await (firebaseUpdateDoc as any)(reference, ...args);
     telemetry.trackWrite();
@@ -1284,7 +1439,7 @@ export async function updateDoc<T = DocumentData>(
 }
 
 /**
- * Central Gateway addDoc with write policy and telemetry.
+ * Central Gateway addDoc with write policy, server+R2 sync, and telemetry.
  */
 export async function addDoc<T = DocumentData>(
   reference: CollectionReference<T>, 
@@ -1294,11 +1449,14 @@ export async function addDoc<T = DocumentData>(
   const priority = writeOptions?.priority || 'NORMAL';
   const opName = writeOptions?.operationName || `addDoc_${reference.id}`;
   const subsystem = writeOptions?.subsystem || 'general';
+  const col = reference.id || (reference.path ? reference.path.split('/')[0] : 'misc');
   const startTime = performance.now();
 
   try {
     const res = await firebaseAddDoc(reference, data);
     telemetry.trackWrite();
+    saveLocalCollectionDoc(col, res.id, data, false);
+    syncGatewayMutationToServer("CREATE", col, res.id, { id: res.id, ...data }).catch(() => {});
     console.log(`[WRITE_AUDIT] op: ${opName}, sub: ${subsystem}, id: ${res.id}, priority: ${priority}, status: SUCCESS, duration: ${(performance.now() - startTime).toFixed(1)}ms`);
     return res as DocumentReference<T>;
   } catch (err: any) {
@@ -1309,12 +1467,9 @@ export async function addDoc<T = DocumentData>(
       throw err;
     }
 
-    const mockId = `mock_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    try {
-      const col = reference.id || 'misc';
-      const key = `sg_local_${col}_${mockId}`;
-      localStorage.setItem(key, JSON.stringify({ id: mockId, ...data, _localSavedAt: Date.now() }));
-    } catch (e) {}
+    const mockId = (data && data.id) ? String(data.id) : `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    saveLocalCollectionDoc(col, mockId, { id: mockId, ...data }, false);
+    syncGatewayMutationToServer("CREATE", col, mockId, { id: mockId, ...data }).catch(() => {});
 
     if (isQuotaOrContinuityError(err)) {
       firestoreCircuitBreaker.recordFailure(err);
@@ -1326,7 +1481,7 @@ export async function addDoc<T = DocumentData>(
 }
 
 /**
- * Central Gateway deleteDoc with write policy and telemetry.
+ * Central Gateway deleteDoc with write policy, server+R2 sync, and telemetry.
  */
 export async function deleteDoc<T = DocumentData>(
   reference: DocumentReference<T>,
@@ -1335,7 +1490,11 @@ export async function deleteDoc<T = DocumentData>(
   const priority = writeOptions?.priority || 'NORMAL';
   const opName = writeOptions?.operationName || `deleteDoc_${reference.path}`;
   const subsystem = writeOptions?.subsystem || 'general';
+  const col = reference.parent?.id || (reference.path ? reference.path.split('/')[0] : 'misc');
   const startTime = performance.now();
+
+  removeLocalCollectionDoc(col, reference.id);
+  syncGatewayMutationToServer("DELETE", col, reference.id).catch(() => {});
 
   try {
     await firebaseDeleteDoc(reference);

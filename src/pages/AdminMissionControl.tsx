@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import AdminLayout from "@/src/components/layout/AdminLayout";
 import SEOHead from "@/src/components/common/SEOHead";
 import { Zap, Activity, Server, Terminal, Bell } from "lucide-react";
-import { collection, getDocs, query, limit } from "@/src/lib/firebase";
-import { db } from "@/src/lib/firebase";
+import { collection, getDocs, query, limit, db, auth } from "@/src/lib/firebase";
 import { snapshotEngine } from "@/src/services/snapshotEngine";
 import { toast } from "sonner";
 import MissionOverviewTab from "@/src/components/admin/mission/MissionOverviewTab";
@@ -67,7 +66,12 @@ export default function AdminMissionControl() {
         ]);
       }
       try {
-        const ccRes = await fetch("/api/admin/command-center");
+        const headers: Record<string, string> = {};
+        if (auth.currentUser) {
+          const token = await auth.currentUser.getIdToken().catch(() => undefined);
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+        }
+        const ccRes = await fetch("/api/admin/command-center", { headers });
         if (ccRes.ok) {
           const ccData = await ccRes.json();
           setCommandCenterSummary(ccData);

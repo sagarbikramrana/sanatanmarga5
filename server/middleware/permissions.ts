@@ -137,6 +137,10 @@ export function getInMemoryAuditLogs(): AuditLogEntry[] {
   return inMemoryAuditLogs;
 }
 
+// In-memory user document cache to prevent exhausting Firestore read quota on every API request
+const userProfileCache = new Map<string, { data: any; fetchedAt: number }>();
+const USER_PROFILE_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
 /**
  * Authenticate request header & retrieve current User document from Firestore or Auth Token
  */
@@ -191,13 +195,24 @@ export async function authenticateRequestUser(
   try {
     const decodedToken = await adminApp.auth().verifyIdToken(token);
     const uid = decodedToken.uid;
-    const email = decodedToken.email || "";
+    const email = (decodedToken.email || "").toLowerCase().trim();
 
     let userDoc: any = null;
-    if (adminDb) {
-      const snap = await adminDb.collection("users").doc(uid).get();
-      if (snap.exists) {
-        userDoc = snap.data();
+    const cachedProfile = userProfileCache.get(uid);
+    if (cachedProfile && Date.now() - cachedProfile.fetchedAt < USER_PROFILE_CACHE_TTL_MS) {
+      userDoc = cachedProfile.data;
+    } else if (adminDb) {
+      try {
+        const snap = await adminDb.collection("users").doc(uid).get();
+        if (snap.exists) {
+          userDoc = snap.data();
+          userProfileCache.set(uid, { data: userDoc, fetchedAt: Date.now() });
+        }
+      } catch (dbErr: any) {
+        // Gracefully continue if Firestore quota is exceeded so valid Firebase tokens never fail with 401
+        if (cachedProfile) {
+          userDoc = cachedProfile.data;
+        }
       }
     }
 
@@ -229,11 +244,17 @@ export async function authenticateRequestUser(
       }
     }
 
+    const configuredAdminEmail = (process.env.ADMIN_EMAIL || "sagarrana@gmail.com").toLowerCase().trim();
+    const isSuperAdminEmail =
+      email === configuredAdminEmail ||
+      email === "sagarrana@gmail.com" ||
+      email === "omsanatanmarga@gmail.com";
+
     // Role Authority: Canonical IAM store ALWAYS overrides token claims and unverified Firestore docs
-    const role = iamUser?.role || userDoc?.role || "member";
+    const role = iamUser?.role || userDoc?.role || (isSuperAdminEmail ? "super_admin" : (decodedToken.role || "member"));
     const tenantId = iamUser?.tenantId || userDoc?.tenantId || decodedToken.tenantId || "sanatan-media";
     const status = iamUser ? (iamUser.status === "ACTIVE" ? "active" : "banned") : (userDoc?.status || "active");
-    const membershipTier = userDoc?.membershipTier || "free";
+    const membershipTier = userDoc?.membershipTier || (isSuperAdminEmail ? "patron" : "free");
     const reputationScore = typeof userDoc?.reputationScore === "number" ? userDoc.reputationScore : 0;
     const customPermissions = iamUser?.customPermissions || (Array.isArray(userDoc?.customPermissions) ? userDoc.customPermissions : []);
 

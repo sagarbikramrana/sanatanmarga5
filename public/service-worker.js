@@ -1,11 +1,9 @@
-const CACHE_NAME = 'sanatanmarga-v5.0.0-beta';
+const CACHE_NAME = 'sanatanmarga-v5.0.2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/logo.svg',
-  '/logo.png',
-  '/manifest.json',
-  '/snapshots/announcements.json'
+  '/logo.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -51,8 +49,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Never cache live streaming endpoints
-  if (url.pathname.includes('/live/') && !url.pathname.endsWith('.json')) {
+  // Never cache live streaming endpoints or API/snapshot endpoints as cache-first
+  if (
+    (url.pathname.includes('/live/') && !url.pathname.endsWith('.json')) ||
+    (url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/notifications/')) ||
+    url.pathname.startsWith('/snapshots/') ||
+    url.pathname === '/manifest.json'
+  ) {
     return;
   }
 
@@ -72,7 +75,9 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      if (cached) return cached;
+      if (cached && !event.request.headers.get('accept')?.includes('text/html')) {
+        return cached;
+      }
       return fetch(event.request).then((response) => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
@@ -82,10 +87,13 @@ self.addEventListener('fetch', (event) => {
           cache.put(event.request, toCache);
         });
         return response;
-      }).catch(() => {
+      }).catch(async () => {
+        if (cached) return cached;
         if (event.request.headers.get('accept')?.includes('text/html')) {
-          return caches.match('/');
+          const indexFallback = (await caches.match('/')) || (await caches.match('/index.html'));
+          if (indexFallback) return indexFallback;
         }
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
       });
     })
   );

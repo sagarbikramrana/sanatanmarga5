@@ -4810,7 +4810,15 @@ ${verifiedSummaryText}
         return res.json({ success: true, syncedCount: 0, succeeded: 0, failed: 0, failedIds: [], itemResults: {} });
       }
 
-      const isAdminOrEditor = resolvedRole === "super_admin" || resolvedRole === "admin" || resolvedRole === "editor" || resolvedRole === "senior_editor" || verifiedEmail === "sagarrana@gmail.com";
+      const STAFF_ROLES_SET = new Set([
+        "super_admin", "admin", "editorial_admin", "chief_editor", "senior_editor",
+        "editor", "district_editor", "reporter", "journalist", "contributor",
+        "acharya", "radio_producer", "revenue_manager", "moderator", "fact_checker"
+      ]);
+      const isAdminOrEditor =
+        STAFF_ROLES_SET.has(resolvedRole) ||
+        verifiedEmail === "sagarrana@gmail.com" ||
+        verifiedEmail === "omsanatanmarga@gmail.com";
       let succeeded = 0;
       let failed = 0;
       const failedIds: string[] = [];
@@ -4836,7 +4844,9 @@ ${verifiedSummaryText}
         const isUserScoped = 
           colName === 'comments' || colName === 'likes' || colName === 'reactions' || 
           colName === 'bookmarks' || colName === 'poll_votes' || colName === 'notifications' ||
-          colName === 'user_profiles' || colName === 'userProfiles' || type === 'USER_PROFILE_UPDATE' ||
+          colName === 'user_profiles' || colName === 'userProfiles' || colName === 'pwa_telemetry' ||
+          colName === 'academy_notes' || colName === 'academy_qa' ||
+          type === 'USER_PROFILE_UPDATE' ||
           type === 'COMMENT_CREATE' || type === 'COMMENT_DELETE' || type === 'BOOKMARK_TOGGLE' ||
           type === 'LIKE_TOGGLE' || type === 'POLL_VOTE' || type === 'NOTIFICATION_READ' ||
           (colName === 'settings' && data?.settingScope === 'user');
@@ -4889,18 +4899,11 @@ ${verifiedSummaryText}
           const clientData = parseSpecialFields(rawData, false);
 
           if (type && type.includes('DELETE')) {
-            if (docId) sos.addDeletedDocId(docId);
-            sos.removeDynamicArticle(docId);
-            sos.removeDynamicCommunityPost(docId);
-            sos.removeDynamicNepalHubLive(docId);
-          } else {
-            if (colName === 'articles' || (type && type.includes('ARTICLE'))) {
-              sos.addDynamicArticle({ id: docId, ...rawData });
-            } else if (colName === 'community_posts' || colName === 'communityPosts' || (type && type.includes('COMMUNITY'))) {
-              sos.addDynamicCommunityPost({ id: docId, ...rawData });
-            } else if (colName === 'nepal_hub_live_updates' || colName === 'nepalHubLive' || (type && type.includes('LIVE_UPDATE'))) {
-              sos.addDynamicNepalHubLive({ id: docId, ...rawData });
+            if (docId) {
+              sos.removeDynamicDocument(colName, docId);
             }
+          } else {
+            sos.upsertDynamicDocument(colName, docId, rawData, true);
           }
 
           const aliasCols = colName === 'community_posts' ? ['communityPosts'] :
@@ -4942,7 +4945,7 @@ ${verifiedSummaryText}
               }
             }
 
-            // Always mark write committed because Snapshot OS dynamic in-memory store was updated
+            // Always mark write committed because Snapshot OS dynamic in-memory + R2 store was updated
             writeSuccess = true;
           } catch (dbErr: any) {
             console.warn(`Firestore sync warning for collection '${colName}':`, dbErr?.message);
@@ -4968,6 +4971,15 @@ ${verifiedSummaryText}
 
       if (succeeded > 0) {
         try {
+          homepageDataCache = { data: null, lastFetched: 0 };
+          if (sos && sos.snapshotStore) {
+            delete sos.snapshotStore["homepage"];
+            delete sos.snapshotStore["homepage-ne"];
+            delete sos.snapshotStore["homepage-en"];
+            delete sos.snapshotStore["latest"];
+            delete sos.snapshotStore["trending"];
+            delete sos.snapshotStore["categories"];
+          }
           sos.queueRebuild("offline_queue_sync");
         } catch (e) {}
       }
@@ -4987,6 +4999,46 @@ ${verifiedSummaryText}
       console.error("sync-pending-posts endpoint error:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
+  });
+
+  // 6c. Dynamic Collection & Document Read Fallback Endpoints (R2 + SnapshotOS Authority)
+  app.get("/api/cache/collection/:colName", (req, res) => {
+    const colName = req.params.colName;
+    const docs = sos.getDynamicCollection(colName);
+    if (colName === "articles") {
+      const snapArticles = sos.snapshotStore["latest"]?.data?.articles || sos.snapshotStore["homepage"]?.data?.latestNews || [];
+      const merged = new Map<string, any>();
+      snapArticles.forEach((a: any) => { if (a?.id && !sos.isDocDeleted(a.id)) merged.set(a.id, a); });
+      sos.dynamicArticles.forEach((a: any) => { if (a?.id && !sos.isDocDeleted(a.id)) merged.set(a.id, { ...(merged.get(a.id) || {}), ...a }); });
+      docs.forEach((a: any) => { if (a?.id && !sos.isDocDeleted(a.id)) merged.set(a.id, { ...(merged.get(a.id) || {}), ...a }); });
+      return res.json({ success: true, items: Array.from(merged.values()) });
+    }
+    if (colName === "categories") {
+      const snapCats = sos.snapshotStore["categories"]?.data?.categories || sos.snapshotStore["homepage"]?.data?.categories || [];
+      const merged = new Map<string, any>();
+      snapCats.forEach((c: any) => { if (c?.id && !sos.isDocDeleted(c.id)) merged.set(c.id, c); });
+      docs.forEach((c: any) => { if (c?.id && !sos.isDocDeleted(c.id)) merged.set(c.id, { ...(merged.get(c.id) || {}), ...c }); });
+      return res.json({ success: true, items: Array.from(merged.values()) });
+    }
+    return res.json({ success: true, items: docs });
+  });
+
+  app.get("/api/cache/doc/:colName/:docId", (req, res) => {
+    const { colName, docId } = req.params;
+    const docData = sos.getDynamicDocument(colName, docId);
+    if (docData) {
+      return res.json({ success: true, exists: true, data: docData });
+    }
+    if (colName === "settings" && docId === "site" && sos.snapshotStore["site_config"]?.data) {
+      return res.json({ success: true, exists: true, data: sos.snapshotStore["site_config"].data });
+    }
+    if (colName === "articles") {
+      const art = sos.dynamicArticles.find((a: any) => a.id === docId) || sos.snapshotStore[`article_${docId}`]?.data?.article;
+      if (art && !sos.isDocDeleted(docId)) {
+        return res.json({ success: true, exists: true, data: art });
+      }
+    }
+    return res.json({ success: true, exists: false, data: null });
   });
 
   // 7. Dynamic Freshness Telemetry Endpoint

@@ -17,7 +17,8 @@ const R2_ENDPOINT = process.env.MEDIA_R2_ENDPOINT || process.env.CLOUDFLARE_R2_E
 const SNAPSHOT_ACCOUNT_ID = process.env.SNAPSHOT_R2_ACCOUNT_ID || process.env.CLOUDFLARE_SNAPSHOT_R2_ACCOUNT_ID || ACCOUNT_ID;
 const SNAPSHOT_ACCESS_KEY_ID = process.env.SNAPSHOT_R2_ACCESS_KEY_ID || process.env.CLOUDFLARE_SNAPSHOT_R2_ACCESS_KEY_ID || ACCESS_KEY_ID;
 const SNAPSHOT_SECRET_ACCESS_KEY = process.env.SNAPSHOT_R2_SECRET_ACCESS_KEY || process.env.CLOUDFLARE_SNAPSHOT_R2_SECRET_ACCESS_KEY || SECRET_ACCESS_KEY;
-const SNAPSHOT_BUCKET_NAME = process.env.SNAPSHOT_R2_BUCKET_NAME || process.env.CLOUDFLARE_SNAPSHOT_R2_BUCKET || process.env.SNAPSHOT_R2_BUCKET || BUCKET_NAME;
+let SNAPSHOT_BUCKET_NAME = process.env.SNAPSHOT_R2_BUCKET_NAME || process.env.CLOUDFLARE_SNAPSHOT_R2_BUCKET || process.env.SNAPSHOT_R2_BUCKET || "sanatanmarga-snapshots";
+const SNAPSHOT_FALLBACK_BUCKETS = ["sanatanmarga-snapshots", "sanatanos-assets", "sanatanmarga", BUCKET_NAME].filter(Boolean);
 const SNAPSHOT_PUBLIC_URL = process.env.SNAPSHOT_R2_PUBLIC_URL || process.env.CLOUDFLARE_SNAPSHOT_R2_PUBLIC_URL || PUBLIC_BASE_URL;
 const SNAPSHOT_R2_ENDPOINT = process.env.SNAPSHOT_R2_ENDPOINT || process.env.CLOUDFLARE_SNAPSHOT_R2_ENDPOINT || (SNAPSHOT_ACCOUNT_ID ? `https://${SNAPSHOT_ACCOUNT_ID}.r2.cloudflarestorage.com` : R2_ENDPOINT);
 
@@ -505,20 +506,49 @@ export async function uploadSnapshotObject(
   try {
     const client = getSnapshotS3Client();
     if (client && isSnapshotR2Configured()) {
-      const putInput: any = {
-        Bucket: SNAPSHOT_BUCKET_NAME,
-        Key: objectKey,
-        Body: buffer,
-        ContentType: "application/json",
-        CacheControl: cacheControl,
+      const buildPutInput = (bucket: string) => {
+        const putInput: any = {
+          Bucket: bucket,
+          Key: objectKey,
+          Body: buffer,
+          ContentType: "application/json",
+          CacheControl: cacheControl,
+        };
+        if (options?.ifMatch) {
+          putInput.IfMatch = options.ifMatch;
+        }
+        if (options?.ifNoneMatch) {
+          putInput.IfNoneMatch = options.ifNoneMatch;
+        }
+        return putInput;
       };
-      if (options?.ifMatch) {
-        putInput.IfMatch = options.ifMatch;
+
+      let putRes: any = null;
+      try {
+        putRes = await client.send(new PutObjectCommand(buildPutInput(SNAPSHOT_BUCKET_NAME)));
+      } catch (primaryErr: any) {
+        const isNoSuchBucket =
+          primaryErr?.name === "NoSuchBucket" ||
+          primaryErr?.Code === "NoSuchBucket" ||
+          primaryErr?.message?.includes("The specified bucket does not exist");
+        if (isNoSuchBucket) {
+          for (const candidateBucket of SNAPSHOT_FALLBACK_BUCKETS) {
+            if (candidateBucket === SNAPSHOT_BUCKET_NAME) continue;
+            try {
+              putRes = await client.send(new PutObjectCommand(buildPutInput(candidateBucket)));
+              console.info(`[SNAPSHOT_OS] Auto-healed Snapshot R2 bucket from "${SNAPSHOT_BUCKET_NAME}" -> "${candidateBucket}"`);
+              SNAPSHOT_BUCKET_NAME = candidateBucket;
+              break;
+            } catch {
+              // Try next fallback bucket
+            }
+          }
+          if (!putRes) throw primaryErr;
+        } else {
+          throw primaryErr;
+        }
       }
-      if (options?.ifNoneMatch) {
-        putInput.IfNoneMatch = options.ifNoneMatch;
-      }
-      const putRes = await client.send(new PutObjectCommand(putInput));
+
       const committedEtag = putRes.ETag || syntheticEtag;
       console.log(`[SNAPSHOT_OS] R2 CAS upload success (${SNAPSHOT_BUCKET_NAME}): ${objectKey} (${buffer.length} bytes, ETag: ${committedEtag})`);
 
