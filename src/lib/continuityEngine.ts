@@ -2,6 +2,7 @@ import { collection, query, orderBy, limit, where, getDocs as firestoreGetDocs, 
 import { db } from "@/src/lib/firebase";
 import { snapshotEngine, HomepageSnapshot } from "@/src/services/snapshotEngine";
 import { Article, Category, Ad } from "@/src/types";
+import { isArticleInCategory } from "@/src/constants/categories";
 import { BACKUP_CATEGORIES, BACKUP_ARTICLES } from "@/src/constants/backupData";
 import { snapshotResilienceGate, ContentSourceType } from "@/src/services/snapshotResilienceGate";
 import { chautariStore } from "@/src/utils/chautariStore";
@@ -239,12 +240,7 @@ export class ContinuityContentRepository {
       if (latestSnap && latestSnap.articles && latestSnap.articles.length > 0) {
         let arts = latestSnap.articles;
         if (category) {
-          const catClean = category.toLowerCase().trim();
-          arts = arts.filter(a => 
-            (a.categoryId && a.categoryId.toLowerCase() === catClean) ||
-            ((a as any).category && (a as any).category.toLowerCase() === catClean) ||
-            ((a as any).categorySlug && (a as any).categorySlug.toLowerCase() === catClean)
-          );
+          arts = arts.filter(a => isArticleInCategory(a, category));
         }
         if (arts.length > 0) {
           const res = arts.slice(0, limitCount);
@@ -324,14 +320,9 @@ export class ContinuityContentRepository {
     const allArts = snapshotEngine.enrichArticles([...dynamicArticles, ...BACKUP_ARTICLES]);
     let filtered = allArts;
     if (category) {
-      const catClean = category.toLowerCase().trim();
-      filtered = allArts.filter(a => 
-        (a.categoryId && a.categoryId.toLowerCase() === catClean) ||
-        ((a as any).category && (a as any).category.toLowerCase() === catClean) ||
-        ((a as any).categorySlug && (a as any).categorySlug.toLowerCase() === catClean)
-      );
+      filtered = allArts.filter(a => isArticleInCategory(a, category));
     }
-    const finalArts = filtered.length > 0 ? filtered.slice(0, limitCount) : allArts.slice(0, limitCount);
+    const finalArts = category ? filtered.slice(0, limitCount) : allArts.slice(0, limitCount);
 
     snapshotResilienceGate.recordContentSourceUsed({
       route,

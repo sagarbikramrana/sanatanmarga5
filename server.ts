@@ -3778,6 +3778,69 @@ ${verifiedSummaryText}
     return res.status(404).json({ error: "Article snapshot not found" });
   });
 
+  // Category Articles Endpoint (Unified Snapshot + Live Category Filter)
+  app.get(["/api/category/:slug", "/api/cache/category/:slug", "/api/cache/categories/:slug.json"], async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const cleanSlug = decodeURIComponent(slug).replace(".json", "").trim().toLowerCase();
+      res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300");
+
+      // Pool all available articles
+      const allArticles: any[] = [];
+      const snapArticles = sos.snapshotStore["latest"]?.data?.articles || sos.snapshotStore["homepage"]?.data?.latestNews || [];
+      allArticles.push(...snapArticles);
+      if (Array.isArray(sos.dynamicArticles)) allArticles.push(...sos.dynamicArticles);
+
+      // Check categoryArticles in homepage snapshot
+      const hpCatMap = sos.snapshotStore["homepage"]?.data?.categoryArticles || {};
+      Object.values(hpCatMap).forEach((list: any) => {
+        if (Array.isArray(list)) allArticles.push(...list);
+      });
+
+      // Also check adminDb if available
+      if (adminDb) {
+        try {
+          const qSnap = await adminDb.collection("articles")
+            .where("status", "==", "published")
+            .limit(100)
+            .get();
+          qSnap.docs.forEach(d => allArticles.push({ id: d.id, ...d.data() }));
+        } catch (e) {}
+      }
+
+      // Filter articles matching cleanSlug
+      const matched = allArticles.filter((a: any) => {
+        if (!a || !a.id || sos.isDocDeleted(a.id)) return false;
+        const artCatId = String(a.categoryId || "").toLowerCase();
+        const artCat = String(a.category || "").toLowerCase();
+        const artCatSlug = String(a.categorySlug || "").toLowerCase();
+        const artCatName = String(a.categoryName || "").toLowerCase();
+
+        return (
+          artCatId === cleanSlug ||
+          artCat === cleanSlug ||
+          artCatSlug === cleanSlug ||
+          artCatName === cleanSlug ||
+          artCatId.includes(cleanSlug) ||
+          cleanSlug.includes(artCatSlug)
+        );
+      });
+
+      // Deduplicate by ID and sort newest first
+      const unique = Array.from(new Map(matched.map(a => [a.id, a])).values())
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      return res.json({
+        success: true,
+        category: cleanSlug,
+        articles: unique,
+        count: unique.length
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || "Internal server error" });
+    }
+  });
+
   // --- SNAPSHOT OS V3.5 ENDPOINTS ---
 
   // --- SNAPSHOT VAULT & RECOVERY PLATFORM (SVRP) ENDPOINTS ---

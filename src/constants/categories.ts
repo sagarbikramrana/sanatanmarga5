@@ -144,3 +144,77 @@ export function normalizeArticleCategory(
   // 5. Default fallback: National ("देश")
   return makeResult(CANONICAL_CATEGORIES[1]); // desh
 }
+
+/**
+ * Authoritative verification function to determine if an article belongs to a target category.
+ * Matches against canonical category ID, slug, Nepali name, English name, and article category variants.
+ */
+export function isArticleInCategory(
+  article: any,
+  targetCategory: { id?: string; slug?: string; nameNepali?: string; nameEnglish?: string } | string
+): boolean {
+  if (!article) return false;
+
+  const targetRaw = typeof targetCategory === "string" 
+    ? targetCategory 
+    : (targetCategory.slug || targetCategory.id || targetCategory.nameNepali || targetCategory.nameEnglish || "");
+  
+  if (!targetRaw) return false;
+
+  const targetClean = targetRaw.trim().toLowerCase();
+  const targetNorm = normalizeArticleCategory(targetClean);
+  const targetSlug = (targetNorm.categorySlug || "").toLowerCase();
+  const targetId = (targetNorm.categoryId || "").toLowerCase();
+  const targetName = (targetNorm.categoryName || "").toLowerCase();
+
+  // All candidate strings present on the article
+  const candidateStrings: string[] = [
+    article.categoryId,
+    article.categorySlug,
+    article.category,
+    article.categoryName,
+    article.catId,
+    article.catSlug,
+  ].filter(Boolean).map((s: any) => String(s).trim().toLowerCase());
+
+  // 1. Direct match on any candidate string against target identifiers
+  for (const s of candidateStrings) {
+    if (
+      s === targetSlug || 
+      s === targetId || 
+      s === targetName || 
+      s === targetClean ||
+      (targetSlug && s.includes(targetSlug))
+    ) {
+      return true;
+    }
+  }
+
+  // 2. Normalized category match on candidate strings
+  for (const s of candidateStrings) {
+    const aNorm = normalizeArticleCategory(s);
+    if (
+      aNorm.categorySlug.toLowerCase() === targetSlug ||
+      aNorm.categoryId.toLowerCase() === targetId ||
+      aNorm.categoryName.toLowerCase() === targetName
+    ) {
+      return true;
+    }
+  }
+
+  // 3. Fallback: Content keyword match for generic category markers ("news", "samachar", "latest")
+  const isGeneric = candidateStrings.length === 0 || candidateStrings.every(s => 
+    s === "news" || s === "samachar" || s === "latest" || s === "article" || s === "general"
+  );
+  if (isGeneric && (article.title || article.content || article.excerpt)) {
+    const contentNorm = normalizeArticleCategory(undefined, article.title, article.content || article.excerpt);
+    if (
+      contentNorm.categorySlug.toLowerCase() === targetSlug ||
+      contentNorm.categoryId.toLowerCase() === targetId
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}

@@ -17,7 +17,7 @@ import { formatDate } from "@/src/lib/utils";
 import { getDocsWithCacheFallback, handleFirestoreError, OperationType } from "@/src/lib/firebase";
 import type { Article } from "@/src/types";
 import { snapshotEngine } from "@/src/services/snapshotEngine";
-import { normalizeArticleCategory } from "@/src/constants/categories";
+import { normalizeArticleCategory, isArticleInCategory, CANONICAL_CATEGORIES } from "@/src/constants/categories";
 import { continuityEngine } from "@/src/lib/continuityEngine";
 import { useLanguage } from "@/src/context/LanguageContext";
 
@@ -47,116 +47,168 @@ export default function CategoryPage() {
     const loadCategoryData = async () => {
       try {
         setLoading(true);
-        const norm = normalizeArticleCategory(slug);
-        const normCatId = norm.categoryId;
-        const normCatSlug = norm.categorySlug;
-        const normCatName = norm.categoryName;
 
-        const catSnap = await snapshotEngine.getCategoriesSnapshot();
-        const foundCat = catSnap.categories?.find(c => 
-          (c.slug || "").toLowerCase() === slug.toLowerCase() || 
-          (c.id || "").toLowerCase() === slug.toLowerCase() ||
-          (c.slug || "").toLowerCase() === normCatSlug.toLowerCase() ||
-          (c.id || "").toLowerCase() === normCatId.toLowerCase() ||
-          (c.nameNepali || "").toLowerCase() === slug.toLowerCase() ||
-          (c.nameEnglish || "").toLowerCase() === slug.toLowerCase()
+        const decodedSlug = decodeURIComponent(slug).trim();
+        const norm = normalizeArticleCategory(decodedSlug);
+
+        // Match against canonical categories
+        const canonical = CANONICAL_CATEGORIES.find(c => 
+          c.slug.toLowerCase() === decodedSlug.toLowerCase() || 
+          c.id.toLowerCase() === decodedSlug.toLowerCase() ||
+          c.nameNepali.toLowerCase() === decodedSlug.toLowerCase() ||
+          c.nameEnglish.toLowerCase() === decodedSlug.toLowerCase() ||
+          c.slug.toLowerCase() === norm.categorySlug.toLowerCase() ||
+          c.id.toLowerCase() === norm.categoryId.toLowerCase()
         );
-        
-        const catId = foundCat?.id || normCatId || slug;
-        const catSlug = foundCat?.slug || normCatSlug || slug;
-        const nameNp = foundCat?.nameNepali || normCatName || slug;
-        const nameEn = foundCat?.nameEnglish || (normCatSlug.charAt(0).toUpperCase() + normCatSlug.slice(1));
-        setCategoryNameNepali(nameNp);
-        setCategoryNameEnglish(nameEn);
-        setResolvedCatId(catId);
-        setResolvedCatSlug(catSlug);
 
-        // Try to get cached articles first for immediate visual feedback
-        let initialArticles: Article[] = [];
-        const cachedArticles = 
-          catSnap.categoryArticles?.[catSlug] || 
-          catSnap.categoryArticles?.[catId] || 
-          catSnap.categoryArticles?.[normCatSlug] || 
-          catSnap.categoryArticles?.[normCatId] || 
-          catSnap.categoryArticles?.[slug];
+        const targetCategory = {
+          id: canonical?.id || norm.categoryId || decodedSlug,
+          slug: canonical?.slug || norm.categorySlug || decodedSlug,
+          nameNepali: canonical?.nameNepali || norm.categoryName || decodedSlug,
+          nameEnglish: canonical?.nameEnglish || (norm.categorySlug.charAt(0).toUpperCase() + norm.categorySlug.slice(1))
+        };
 
-        if (cachedArticles && cachedArticles.length > 0) {
-          initialArticles = cachedArticles;
-        } else {
-          const hpSnap = await snapshotEngine.getHomepageSnapshot();
-          const hpCatArticles = 
-            hpSnap.categoryArticles?.[catSlug] || 
-            hpSnap.categoryArticles?.[catId] || 
-            hpSnap.categoryArticles?.[normCatSlug] || 
-            hpSnap.categoryArticles?.[normCatId] || 
-            hpSnap.categoryArticles?.[slug];
+        setCategoryNameNepali(targetCategory.nameNepali);
+        setCategoryNameEnglish(targetCategory.nameEnglish);
+        setResolvedCatId(targetCategory.id);
+        setResolvedCatSlug(targetCategory.slug);
 
-          if (hpCatArticles && hpCatArticles.length > 0) {
-            initialArticles = hpCatArticles;
-          } else {
-            // Filter from latest news pool
-            const filteredLatest = (hpSnap.latestNews || []).filter((a: any) => {
-              const aCatId = (a.categoryId || "").toLowerCase();
-              const aCat = (a.category || "").toLowerCase();
-              const aCatSlug = (a.categorySlug || "").toLowerCase();
-              const aCatName = (a.categoryName || "").toLowerCase();
-              const targetSlug = catSlug.toLowerCase();
-              const targetId = catId.toLowerCase();
-              const targetName = nameNp.toLowerCase();
-              const aNorm = normalizeArticleCategory(aCatId || aCatSlug || aCat || aCatName);
+        const collectedArticles: Article[] = [];
 
-              return (
-                aCatId === targetSlug ||
-                aCatId === targetId ||
-                aCat === targetSlug ||
-                aCat === targetId ||
-                aCatSlug === targetSlug ||
-                aNorm.categorySlug.toLowerCase() === normCatSlug.toLowerCase() ||
-                (targetName && (aCatName === targetName || aCat === targetName))
-              );
+        // 1. Fetch from Snapshots (Categories, Homepage, and Latest)
+        try {
+          const [catSnap, hpSnap, latestSnap] = await Promise.all([
+            snapshotEngine.getCategoriesSnapshot().catch(() => null),
+            snapshotEngine.getHomepageSnapshot().catch(() => null),
+            snapshotEngine.getLatestSnapshot().catch(() => null)
+          ]);
+
+          // Check direct categoryArticles maps
+          const checkMap = (catArticles?: Record<string, Article[]>) => {
+            if (!catArticles) return;
+            Object.entries(catArticles).forEach(([key, list]) => {
+              if (Array.isArray(list)) {
+                list.forEach((art: any) => {
+                  if (art && isArticleInCategory(art, targetCategory)) {
+                    collectedArticles.push(art);
+                  }
+                });
+              }
             });
-            if (filteredLatest.length > 0) {
-              initialArticles = filteredLatest;
+          };
+
+          checkMap(catSnap?.categoryArticles);
+          checkMap(hpSnap?.categoryArticles);
+
+          // Check article pools
+          const pools = [
+            ...(hpSnap?.latestNews || []),
+            ...(hpSnap?.featuredArticles || []),
+            ...(hpSnap?.trendingNews || []),
+            ...(latestSnap?.articles || [])
+          ];
+
+          pools.forEach((art: any) => {
+            if (art && isArticleInCategory(art, targetCategory)) {
+              collectedArticles.push(art);
             }
-          }
+          });
+        } catch (e) {
+          // Non-blocking snapshot read
         }
 
-        if (initialArticles.length > 0) {
-          setArticles(initialArticles);
+        // 2. Fetch dynamic in-memory articles
+        try {
+          const dynamicArticles = snapshotEngine.getDynamicArticles();
+          dynamicArticles.forEach((art: any) => {
+            if (art && isArticleInCategory(art, targetCategory)) {
+              collectedArticles.push(art);
+            }
+          });
+        } catch (e) {}
+
+        // 2b. Fetch from backend category endpoint
+        try {
+          const apiRes = await fetch(`/api/category/${encodeURIComponent(targetCategory.slug)}`);
+          if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData.success && Array.isArray(apiData.articles)) {
+              apiData.articles.forEach((art: any) => {
+                if (art && isArticleInCategory(art, targetCategory)) {
+                  collectedArticles.push(art);
+                }
+              });
+            }
+          }
+        } catch (e) {}
+
+        // If we found articles from snapshots, display immediately for instant UI feedback
+        if (collectedArticles.length > 0) {
+          const initialUnique = Array.from(
+            new Map(collectedArticles.filter(a => a && a.id).map(a => [a.id, a])).values()
+          ).sort((a, b) => new Date(b.createdAt || (b as any).date || 0).getTime() - new Date(a.createdAt || (a as any).date || 0).getTime());
+          
+          setArticles(initialUnique);
           setLoading(false);
         }
 
-        // Query Firestore if active, or use continuityEngine immediately
+        // 3. Query Firestore / DB and filter strictly by category
         try {
+          const matchKeys = Array.from(new Set([
+            targetCategory.id,
+            targetCategory.slug,
+            targetCategory.nameNepali,
+            canonical?.id,
+            canonical?.slug,
+            norm.categoryId,
+            norm.categorySlug
+          ].filter(Boolean)));
+
           const q = query(
             collection(db, "articles"),
-            where("categoryId", "in", [catId, catSlug]),
+            where("categoryId", "in", matchKeys.slice(0, 10)),
             where("status", "==", "published"),
             orderBy("createdAt", "desc"),
-            limit(20)
+            limit(30)
           );
+
           const snap = await getDocsWithCacheFallback(q);
-          const dbArticles = snap.docs.map(d => ({ id: d.id, ...d.data() } as Article));
+          const dbArticles = snap.docs
+            .map(d => ({ id: d.id, ...d.data() } as Article))
+            .filter(a => isArticleInCategory(a, targetCategory));
+
           if (dbArticles.length > 0) {
-            setArticles(dbArticles);
+            collectedArticles.unshift(...dbArticles);
             setLastDoc(snap.docs[snap.docs.length - 1]);
-            setHasMore(snap.docs.length === 20);
-          } else if (initialArticles.length === 0) {
-            const fallbackArticles = await continuityEngine.getRecentArticles(20, catId || catSlug);
-            setArticles(fallbackArticles);
+            setHasMore(dbArticles.length >= 20);
           }
         } catch (qErr) {
-          const fallbackArticles = await continuityEngine.getRecentArticles(20, catId || catSlug);
-          if (fallbackArticles.length > 0) {
-            setArticles(fallbackArticles);
-          } else if (initialArticles.length === 0) {
-            setArticles([]);
-          }
+          // If compound query fails (e.g. index building), use continuityEngine with strict filter
+          try {
+            const fallbackArticles = await continuityEngine.getRecentArticles(30, targetCategory.slug);
+            const matched = fallbackArticles.filter(a => isArticleInCategory(a, targetCategory));
+            if (matched.length > 0) {
+              collectedArticles.unshift(...matched);
+            }
+          } catch (e) {}
         }
+
+        // Deduplicate and finalize articles
+        const finalUnique = Array.from(
+          new Map(
+            collectedArticles
+              .filter(a => a && a.id && isArticleInCategory(a, targetCategory))
+              .map(a => [a.id, a])
+          ).values()
+        ).sort((a, b) => {
+          const timeA = new Date(a.createdAt || (a as any).date || 0).getTime();
+          const timeB = new Date(b.createdAt || (b as any).date || 0).getTime();
+          return timeB - timeA;
+        });
+
+        setArticles(finalUnique);
       } catch (err) {
         console.warn("Category load error:", err);
-        const fallbackArticles = await continuityEngine.getRecentArticles(20, slug);
-        setArticles(fallbackArticles);
       } finally {
         setLoading(false);
       }
@@ -209,14 +261,24 @@ export default function CategoryPage() {
         snapshot = await getDocsWithCacheFallback(fallbackQ);
       }
 
-      const newArticles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+      const targetCategory = {
+        id: resolvedCatId,
+        slug: resolvedCatSlug,
+        nameNepali: categoryNameNepali,
+        nameEnglish: categoryNameEnglish
+      };
+
+      const newArticles = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Article))
+        .filter(a => isArticleInCategory(a, targetCategory));
+
       setArticles(prev => {
         const existingIds = new Set(prev.map(a => a.id));
         const filteredNew = newArticles.filter(a => !existingIds.has(a.id));
         return [...prev, ...filteredNew];
       });
       setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === 10);
+      setHasMore(newArticles.length === 10);
     } catch (err) {
       console.error("Error loading more articles:", err);
     }
